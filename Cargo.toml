@@ -1,0 +1,8 @@
+[package]
+name = "fretwire"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+icu_casemap = "2.2.0"
+icu_locale = "2.2.0"
