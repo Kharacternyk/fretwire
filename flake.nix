@@ -11,6 +11,7 @@
         packages.default = naersk'.buildPackage {
           src = ./.;
         };
+        devShells.default = pkgs.mkShell { };
       }
     );
 
