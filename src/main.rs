@@ -4,6 +4,9 @@ use std::env;
 use std::fmt::Display;
 use std::process::ExitCode;
 
+mod locale;
+mod row;
+
 fn main() -> ExitCode {
     let locale = match env::var("FRETWIRE_LOCALE") {
         Ok(string) => match Locale::try_from_str(&string) {
