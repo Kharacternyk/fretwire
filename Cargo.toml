@@ -6,3 +6,5 @@ edition = "2024"
 [dependencies]
 icu_casemap = "2.2.0"
 icu_locale = "2.2.0"
+icu_properties = "2.2.0"
+writeable = "0.6.3"
