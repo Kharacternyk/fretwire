@@ -1,14 +1,8 @@
-use icu_casemap::CaseMapper;
-use icu_locale::Locale;
+use crate::case::Case;
+use crate::locale::Locale;
 
 pub struct Row {
     data: String,
-}
-
-pub enum RowCase {
-    Upper,
-    Lower,
-    Neutral,
 }
 
 impl Row {
@@ -17,8 +11,11 @@ impl Row {
         Row { data }
     }
 
-    pub fn case(&self, mapper: &CaseMapper) -> RowCase {
-        RowCase::Upper
+    pub fn case(&self, locale: &Locale) -> Case {
+        match self.data.chars().next() {
+            Some(character) => locale.case(character),
+            _ => Case::Neutral,
+        }
     }
 }
 
@@ -26,7 +23,7 @@ impl Row {
 mod tests {
     #[test]
     fn test_trailing_whitespace() {
-        let row = super::Row::new(String::from("abc "));
+        let row = super::Row::new(String::from("abc \t  \n"));
         assert_eq!(row.data, "abc");
     }
 }
