@@ -4,6 +4,7 @@ use std::env;
 use std::fmt::Display;
 use std::process::ExitCode;
 
+mod case;
 mod locale;
 mod row;
 
