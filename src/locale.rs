@@ -41,20 +41,24 @@ impl<'a> Locale<'a> {
         }
     }
 
-    pub fn first_char_to_upper(&self, string: &'a str) -> impl Writeable + 'a {
+    pub fn first_char_to_upper(&self, string: &str) -> String {
         self.mapper
             .titlecase_segment_with_only_case_data(string, &self.icu.id, Default::default())
+            .write_to_string()
+            .into_owned()
     }
 
-    pub fn first_char_to_lower(&self, string: &'a str) -> impl Writeable + 'a {
-        self.mapper.lowercase(string, &self.icu.id)
+    pub fn first_char_to_lower(&self, string: &'a str) -> String {
+        self.mapper
+            .lowercase(string, &self.icu.id)
+            .write_to_string()
+            .into_owned()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::Case;
-    use writeable::Writeable;
 
     const UPPERCASE_DIGRAPH: char = '\u{01C4}';
     const TITLECASE_DIGRAPH: char = '\u{01C5}';
@@ -97,57 +101,24 @@ mod tests {
 
     #[test]
     fn test_to_upper() {
+        assert_eq!(locale("").first_char_to_upper("ii"), "Ii");
+        assert_eq!(locale("").first_char_to_upper("ß"), "Ss");
+        assert_eq!(locale("tr-TR").first_char_to_upper("ii"), "İi");
         assert_eq!(
-            locale("")
-                .first_char_to_upper("ii")
-                .write_to_string()
-                .into_owned(),
-            "Ii"
-        );
-        assert_eq!(
-            locale("")
-                .first_char_to_upper("ß")
-                .write_to_string()
-                .into_owned(),
-            "Ss"
-        );
-        assert_eq!(
-            locale("tr-TR")
-                .first_char_to_upper("ii")
-                .write_to_string()
-                .into_owned(),
-            "İi"
-        );
-        assert_eq!(
-            locale("")
-                .first_char_to_upper(&LOWERCASE_DIGRAPH.to_string())
-                .write_to_string()
-                .into_owned(),
+            locale("").first_char_to_upper(&LOWERCASE_DIGRAPH.to_string()),
             TITLECASE_DIGRAPH.to_string(),
         );
     }
 
     #[test]
     fn test_to_lower() {
+        assert_eq!(locale("").first_char_to_lower("Ґрунт"), "ґрунт");
         assert_eq!(
-            locale("")
-                .first_char_to_lower("Ґрунт")
-                .write_to_string()
-                .into_owned(),
-            "ґрунт"
-        );
-        assert_eq!(
-            locale("")
-                .first_char_to_lower(&TITLECASE_DIGRAPH.to_string())
-                .write_to_string()
-                .into_owned(),
+            locale("").first_char_to_lower(&TITLECASE_DIGRAPH.to_string()),
             LOWERCASE_DIGRAPH.to_string(),
         );
         assert_eq!(
-            locale("")
-                .first_char_to_lower(&UPPERCASE_DIGRAPH.to_string())
-                .write_to_string()
-                .into_owned(),
+            locale("").first_char_to_lower(&UPPERCASE_DIGRAPH.to_string()),
             LOWERCASE_DIGRAPH.to_string(),
         );
     }
