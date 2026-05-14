@@ -12,13 +12,14 @@ impl Row {
     }
 
     pub fn case(&self, locale: &Locale) -> Option<Case> {
-        match self.string.chars().next() {
-            Some(character) => Some(locale.case(character)),
-            _ => None,
-        }
+        self.string.chars().next().map(|c| locale.case(c))
     }
 
     pub fn first_char_to_upper(&mut self, locale: &Locale) {
+        self.string = locale.first_char_to_upper(&self.string);
+    }
+
+    pub fn first_char_to_lower(&mut self, locale: &Locale) {
         self.string = locale.first_char_to_lower(&self.string);
     }
 }
