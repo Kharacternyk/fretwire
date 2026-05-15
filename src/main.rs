@@ -6,7 +6,7 @@ use std::process::ExitCode;
 
 mod case;
 mod locale;
-mod row;
+mod paragraph;
 
 fn main() -> ExitCode {
     let locale = match env::var("FRETWIRE_LOCALE") {
