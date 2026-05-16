@@ -41,14 +41,14 @@ impl<'a> Locale<'a> {
         }
     }
 
-    pub fn first_char_to_upper(&self, string: &str) -> String {
+    pub fn to_title(&self, string: &str) -> String {
         self.mapper
             .titlecase_segment_with_only_case_data(string, &self.icu.id, Default::default())
             .write_to_string()
             .into_owned()
     }
 
-    pub fn first_char_to_lower(&self, string: &'a str) -> String {
+    pub fn to_lower(&self, string: &'a str) -> String {
         self.mapper
             .lowercase(string, &self.icu.id)
             .write_to_string()
@@ -101,24 +101,24 @@ mod tests {
 
     #[test]
     fn test_to_upper() {
-        assert_eq!(locale("").first_char_to_upper("ii"), "Ii");
-        assert_eq!(locale("").first_char_to_upper("ß"), "Ss");
-        assert_eq!(locale("tr-TR").first_char_to_upper("ii"), "İi");
+        assert_eq!(locale("").to_title("ii"), "Ii");
+        assert_eq!(locale("").to_title("ßS"), "Sss");
+        assert_eq!(locale("tr-TR").to_title("ii"), "İi");
         assert_eq!(
-            locale("").first_char_to_upper(&LOWERCASE_DIGRAPH.to_string()),
+            locale("").to_title(&LOWERCASE_DIGRAPH.to_string()),
             TITLECASE_DIGRAPH.to_string(),
         );
     }
 
     #[test]
     fn test_to_lower() {
-        assert_eq!(locale("").first_char_to_lower("Ґрунт"), "ґрунт");
+        assert_eq!(locale("").to_lower("Ґрунт: А"), "ґрунт: а");
         assert_eq!(
-            locale("").first_char_to_lower(&TITLECASE_DIGRAPH.to_string()),
+            locale("").to_lower(&TITLECASE_DIGRAPH.to_string()),
             LOWERCASE_DIGRAPH.to_string(),
         );
         assert_eq!(
-            locale("").first_char_to_lower(&UPPERCASE_DIGRAPH.to_string()),
+            locale("").to_lower(&UPPERCASE_DIGRAPH.to_string()),
             LOWERCASE_DIGRAPH.to_string(),
         );
     }
