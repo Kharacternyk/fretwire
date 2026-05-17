@@ -7,6 +7,12 @@ pub struct Row {
     string: String,
 }
 
+impl From<Row> for String {
+    fn from(row: Row) -> String {
+        row.string
+    }
+}
+
 impl Row {
     pub fn new(mut string: String) -> Row {
         string.truncate(string.trim_end().len());

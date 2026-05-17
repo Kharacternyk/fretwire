@@ -1,4 +1,7 @@
+use core::cmp::Ordering;
+
 use icu_casemap::{CaseMapper, CaseMapperBorrowed};
+use icu_collator::{Collator, CollatorBorrowed};
 use icu_locale::Locale as ICULocale;
 use icu_properties::props::{ChangesWhenLowercased, Lowercase};
 use icu_properties::{CodePointSetData, CodePointSetDataBorrowed};
@@ -10,6 +13,7 @@ pub struct Locale<'a> {
     mapper: CaseMapperBorrowed<'a>,
     lower: CodePointSetDataBorrowed<'a>,
     upper: CodePointSetDataBorrowed<'a>,
+    collator: CollatorBorrowed<'a>,
     icu: ICULocale,
 }
 
@@ -21,10 +25,13 @@ impl<'a> Locale<'a> {
             ICULocale::try_from_str(descriptor).ok()?
         };
 
+        let collator = Collator::try_new(icu.clone().into(), Default::default()).ok()?;
+
         Some(Locale {
             mapper: CaseMapper::new(),
             lower: CodePointSetData::new::<Lowercase>(),
             upper: CodePointSetData::new::<ChangesWhenLowercased>(),
+            collator,
             icu,
         })
     }
@@ -48,11 +55,15 @@ impl<'a> Locale<'a> {
             .into_owned()
     }
 
-    pub fn to_lower(&self, string: &'a str) -> String {
+    pub fn to_lower(&self, string: &str) -> String {
         self.mapper
             .lowercase(string, &self.icu.id)
             .write_to_string()
             .into_owned()
+    }
+
+    pub fn compare(&self, a: &str, b: &str) -> Ordering {
+        self.collator.compare(a, b)
     }
 }
 
