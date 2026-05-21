@@ -1,35 +1,54 @@
-use icu_casemap::CaseMapper;
-use icu_locale::{Locale, locale};
+use std::borrow::Cow;
 use std::env;
-use std::fmt::Display;
+use std::io::{BufRead, Write, stdin, stdout};
 use std::process::ExitCode;
+
+use crate::locale::Locale;
+use crate::paragraph::Paragraph;
 
 mod case;
 mod locale;
 mod paragraph;
 
 fn main() -> ExitCode {
-    let locale = match env::var("FRETWIRE_LOCALE") {
-        Ok(string) => match Locale::try_from_str(&string) {
-            Ok(locale) => locale,
-            Err(error) => {
-                return locale_error(error);
-            }
-        },
-        Err(env::VarError::NotPresent) => locale!("und"),
+    let locale_descriptor = match env::var("FRETWIRE_LOCALE") {
+        Ok(string) => Cow::Owned(string),
+        Err(env::VarError::NotPresent) => Cow::Borrowed(""),
         Err(env::VarError::NotUnicode(_)) => {
-            return locale_error("invalid UTF-8");
+            eprintln!("FRETWIRE_LOCALE is not valid UTF-8");
+            return 1.into();
         }
     };
-    let case_mapper = CaseMapper::new();
-    let result = case_mapper.uppercase_to_string("iii jjj", &locale.id);
+    let Some(locale) = Locale::try_new(&locale_descriptor) else {
+        eprintln!("FRETWIRE_LOCALE is not a valid locale descriptor");
+        return 1.into();
+    };
+    let mut paragraph = Paragraph::new(locale);
+    let mut stdout = stdout().lock();
 
-    println!("{}", result);
+    for line in stdin().lock().lines() {
+        let Ok(line) = line else {
+            return 2.into();
+        };
+
+        for line in paragraph.feed(line) {
+            if let Err(_) = stdout.write_all(line.as_bytes()) {
+                return 3.into();
+            }
+            if let Err(_) = stdout.write_all("\n".as_bytes()) {
+                return 3.into();
+            }
+        }
+    }
+
+    for line in paragraph.flush() {
+        if let Err(_) = stdout.write_all(line.as_bytes()) {
+            return 3.into();
+        }
+        if let Err(_) = stdout.write_all("\n".as_bytes()) {
+            return 3.into();
+        }
+    }
 
     ExitCode::SUCCESS
-}
-
-fn locale_error<T: Display>(error: T) -> ExitCode {
-    eprintln!("Error parsing FRETWIRE_LOCALE: {}", error);
-    return ExitCode::from(1);
 }
