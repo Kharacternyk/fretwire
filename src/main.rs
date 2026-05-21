@@ -32,20 +32,20 @@ fn main() -> ExitCode {
         };
 
         for line in paragraph.feed(line) {
-            if let Err(_) = stdout.write_all(line.as_bytes()) {
+            if stdout.write_all(line.as_bytes()).is_err() {
                 return 3.into();
             }
-            if let Err(_) = stdout.write_all("\n".as_bytes()) {
+            if stdout.write_all("\n".as_bytes()).is_err() {
                 return 3.into();
             }
         }
     }
 
     for line in paragraph.flush() {
-        if let Err(_) = stdout.write_all(line.as_bytes()) {
+        if stdout.write_all(line.as_bytes()).is_err() {
             return 3.into();
         }
-        if let Err(_) = stdout.write_all("\n".as_bytes()) {
+        if stdout.write_all("\n".as_bytes()).is_err() {
             return 3.into();
         }
     }
