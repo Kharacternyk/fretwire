@@ -93,8 +93,8 @@ mod tests {
         for line in [
             "",
             "First line     ",
-            "second line",
-            "3 three",
+            "second line\n\r",
+            "3 three\r\n",
             "Another  ",
             "   ",
             "",
