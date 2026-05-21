@@ -107,6 +107,8 @@ mod tests {
             }
         }
 
+        assert_eq!(result.len(), 7);
+
         for line in paragraph.flush() {
             result.push(line);
         }
