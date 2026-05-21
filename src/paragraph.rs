@@ -1,6 +1,7 @@
 use self::row::Row;
 use crate::case::Case;
 use crate::locale::Locale;
+use std::borrow::Cow;
 
 mod row;
 
@@ -23,7 +24,7 @@ impl<'a> Paragraph<'a> {
         }
     }
 
-    pub fn feed(&mut self, string: String) -> Vec<String> {
+    pub fn feed(&mut self, string: String) -> Vec<Cow<'static, str>> {
         let row = Row::new(string);
 
         if let Some(case) = row.case(&self.locale) {
@@ -41,7 +42,7 @@ impl<'a> Paragraph<'a> {
         }
     }
 
-    pub fn flush(&mut self) -> Vec<String> {
+    pub fn flush(&mut self) -> Vec<Cow<'static, str>> {
         if self.upper_rows.len() > self.lower_rows.len() {
             for row in &mut self.lower_rows {
                 row.first_char_to_upper(&self.locale);
@@ -52,24 +53,30 @@ impl<'a> Paragraph<'a> {
             }
         }
 
-        /* FIXME: this does not preallocate even though we know the final length */
-        let mut result: Vec<String> = [
+        let capacity = self.vectors().map(|v| v.len()).sum();
+        let mut result = Vec::with_capacity(capacity);
+
+        for vector in self.vectors() {
+            for row in vector.drain(..) {
+                result.push(Cow::Owned(row.into()));
+            }
+        }
+
+        result.sort_by(|a, b| self.locale.compare(a, b));
+
+        if self.is_delimited {
+            result.push(Cow::Borrowed(""));
+        }
+
+        result
+    }
+
+    fn vectors(&mut self) -> impl Iterator<Item = &mut Vec<Row>> {
+        [
             &mut self.lower_rows,
             &mut self.upper_rows,
             &mut self.neutral_rows,
         ]
         .into_iter()
-        .map(|vector| vector.drain(..))
-        .flatten()
-        .map(|row| row.into())
-        .collect();
-
-        result.sort_by(|a, b| self.locale.compare(a, b));
-
-        if self.is_delimited {
-            result.push(String::from(""));
-        }
-
-        result
     }
 }
