@@ -66,6 +66,7 @@ impl<'a> Paragraph<'a> {
 
         if self.is_delimited {
             result.push(Cow::Borrowed(""));
+            self.is_delimited = false;
         }
 
         result
