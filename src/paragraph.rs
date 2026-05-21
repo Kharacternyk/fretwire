@@ -13,7 +13,7 @@ pub struct Paragraph<'a> {
     locale: Locale<'a>,
 }
 
-impl<'a> Paragraph<'a> {
+impl Paragraph<'_> {
     pub fn new(locale: Locale) -> Paragraph {
         Paragraph {
             lower_rows: Vec::new(),

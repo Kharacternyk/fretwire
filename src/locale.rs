@@ -17,7 +17,7 @@ pub struct Locale<'a> {
     icu: ICULocale,
 }
 
-impl<'a> Locale<'a> {
+impl Locale<'_> {
     pub fn try_new(descriptor: &str) -> Option<Self> {
         let icu = if descriptor.is_empty() {
             ICULocale::UNKNOWN
@@ -39,12 +39,10 @@ impl<'a> Locale<'a> {
     pub fn case(&self, character: char) -> Case {
         if self.lower.contains(character) {
             Case::Lower
+        } else if self.upper.contains(character) {
+            Case::Upper
         } else {
-            if self.upper.contains(character) {
-                Case::Upper
-            } else {
-                Case::Neutral
-            }
+            Case::Neutral
         }
     }
 
