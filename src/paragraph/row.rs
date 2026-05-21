@@ -54,7 +54,7 @@ mod tests {
 
     #[test]
     fn test_trailing_whitespace() {
-        let row = super::Row::new(String::from("abc \t  \n"));
+        let row = super::Row::new("abc \t  \n".into());
         assert_eq!(row.string, "abc");
     }
 
@@ -62,7 +62,7 @@ mod tests {
     fn test_first_char_to_upper() {
         let locale = Locale::try_new("").unwrap();
         let string = "Some good Weather";
-        let mut row = super::Row::new(String::from(string));
+        let mut row = super::Row::new(string.into());
 
         assert_eq!(row.string, string);
 
@@ -70,7 +70,7 @@ mod tests {
 
         assert_eq!(row.string, string);
 
-        row = super::Row::new(String::from("some good Weather"));
+        row = super::Row::new("some good Weather".into());
 
         row.first_char_to_upper(&locale);
 
@@ -81,7 +81,7 @@ mod tests {
     fn test_first_char_to_lower() {
         let locale = Locale::try_new("").unwrap();
         let string = "some good Weather";
-        let mut row = super::Row::new(String::from(string));
+        let mut row = super::Row::new(string.into());
 
         assert_eq!(row.string, string);
 
@@ -89,7 +89,7 @@ mod tests {
 
         assert_eq!(row.string, string);
 
-        row = super::Row::new(String::from("Some good Weather"));
+        row = super::Row::new("Some good Weather".into());
 
         row.first_char_to_lower(&locale);
 
