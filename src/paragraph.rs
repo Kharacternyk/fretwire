@@ -81,3 +81,50 @@ impl<'a> Paragraph<'a> {
         .into_iter()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_loop() {
+        let locale = crate::locale::Locale::try_new("").unwrap();
+        let mut paragraph = super::Paragraph::new(locale);
+        let mut result = Vec::new();
+
+        for line in [
+            "",
+            "First line     ",
+            "second line",
+            "3 three",
+            "Another  ",
+            "   ",
+            "",
+            "a",
+            "C",
+            "b   ",
+        ] {
+            for line in paragraph.feed(line.into()) {
+                result.push(line);
+            }
+        }
+
+        for line in paragraph.flush() {
+            result.push(line);
+        }
+
+        assert_eq!(
+            result,
+            vec![
+                "",
+                "3 three",
+                "Another",
+                "First line",
+                "Second line",
+                "",
+                "",
+                "a",
+                "b",
+                "c",
+            ]
+        );
+    }
+}
