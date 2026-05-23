@@ -1,5 +1,8 @@
 {
   outputs = { self, naersk, nixpkgs, flake-utils }:
+    {
+      lib = import ./lib.nix nixpkgs.lib;
+    } //
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs {
