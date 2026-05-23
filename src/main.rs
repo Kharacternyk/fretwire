@@ -38,7 +38,7 @@ fn main() -> ExitCode {
             if stdout.write_all(line.as_bytes()).is_err() {
                 return 3.into();
             }
-            if stdout.write_all("\n".as_bytes()).is_err() {
+            if stdout.write_all(b"\n").is_err() {
                 return 3.into();
             }
         }
@@ -48,7 +48,7 @@ fn main() -> ExitCode {
         if stdout.write_all(line.as_bytes()).is_err() {
             return 3.into();
         }
-        if stdout.write_all("\n".as_bytes()).is_err() {
+        if stdout.write_all(b"\n").is_err() {
             return 3.into();
         }
     }

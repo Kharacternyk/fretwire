@@ -14,7 +14,7 @@ impl From<Row> for String {
 impl From<String> for Row {
     fn from(mut string: String) -> Self {
         string.truncate(string.trim_end().len());
-        Row { string }
+        Self { string }
     }
 }
 

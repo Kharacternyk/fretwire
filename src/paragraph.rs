@@ -16,7 +16,7 @@ pub struct Paragraph<'a> {
 }
 
 impl Paragraph<'_> {
-    pub fn new(locale: Locale) -> Paragraph {
+    pub const fn new(locale: Locale) -> Paragraph {
         Paragraph {
             lower_rows: Vec::new(),
             upper_rows: Vec::new(),
