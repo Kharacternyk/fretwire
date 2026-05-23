@@ -1,57 +1,39 @@
-use crate::paragraph::Paragraph;
-use std::{
-    borrow::Cow::{Borrowed, Owned},
-    env::{
-        VarError::{NotPresent, NotUnicode},
-        var,
+use crate::{
+    fatal_error::FatalError::{
+        self, IOReadError, IOWriteError, LocaleNotUnicode, LocaleNotValid,
     },
-    io::{BufRead, Write, stdin, stdout},
-    process::ExitCode,
+    format::format,
 };
+use std::process::ExitCode;
 
 mod case;
+mod fatal_error;
+mod format;
 mod locale;
 mod paragraph;
 
 fn main() -> ExitCode {
-    let locale_descriptor = match var("FRETWIRE_LOCALE") {
-        Ok(string) => Owned(string),
-        Err(NotPresent) => Borrowed(""),
-        Err(NotUnicode(_)) => {
-            eprintln!("FRETWIRE_LOCALE is not valid UTF-8");
-            return 1.into();
-        }
-    };
-    let Ok(locale) = locale_descriptor.parse() else {
-        eprintln!("FRETWIRE_LOCALE is not a valid locale descriptor");
-        return 1.into();
-    };
-    let mut paragraph = Paragraph::new(locale);
-    let mut stdout = stdout().lock();
+    format()
+        .map(|()| ExitCode::SUCCESS)
+        .inspect_err(print)
+        .unwrap_or_else(|error| exit_code(&error).into())
+}
 
-    for line in stdin().lock().lines() {
-        let Ok(line) = line else {
-            return 2.into();
-        };
-
-        for line in paragraph.feed(line) {
-            if stdout.write_all(line.as_bytes()).is_err() {
-                return 3.into();
-            }
-            if stdout.write_all(b"\n").is_err() {
-                return 3.into();
-            }
+fn print(error: &FatalError) {
+    match error {
+        LocaleNotUnicode => eprintln!("FRETWIRE_LOCALE is not valid UTF-8"),
+        LocaleNotValid { descriptor } => {
+            eprintln!("FRETWIRE_LOCALE is not a valid locale descriptor: {descriptor:?}")
         }
+        IOReadError { cause } => eprintln!("Error while reading from stdin: {cause}"),
+        IOWriteError { cause } => eprintln!("Error while writing to stdout: {cause}"),
     }
+}
 
-    for line in paragraph.flush() {
-        if stdout.write_all(line.as_bytes()).is_err() {
-            return 3.into();
-        }
-        if stdout.write_all(b"\n").is_err() {
-            return 3.into();
-        }
+const fn exit_code(error: &FatalError) -> u8 {
+    match error {
+        LocaleNotUnicode | LocaleNotValid { .. } => 1,
+        IOReadError { .. } => 2,
+        IOWriteError { .. } => 3,
     }
-
-    ExitCode::SUCCESS
 }
