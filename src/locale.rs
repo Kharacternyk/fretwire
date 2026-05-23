@@ -1,13 +1,14 @@
+use crate::case::Case;
 use core::cmp::Ordering;
-
 use icu_casemap::{CaseMapper, CaseMapperBorrowed};
 use icu_collator::{Collator, CollatorBorrowed};
 use icu_locale::Locale as ICULocale;
-use icu_properties::props::{ChangesWhenLowercased, Lowercase};
-use icu_properties::{CodePointSetData, CodePointSetDataBorrowed};
+use icu_properties::{
+    CodePointSetData, CodePointSetDataBorrowed,
+    props::{ChangesWhenLowercased, Lowercase},
+};
+use std::str::FromStr;
 use writeable::Writeable;
-
-use crate::case::Case;
 
 pub struct Locale<'a> {
     mapper: CaseMapperBorrowed<'a>,
@@ -17,17 +18,21 @@ pub struct Locale<'a> {
     icu: ICULocale,
 }
 
-impl Locale<'_> {
-    pub fn try_new(descriptor: &str) -> Option<Self> {
+impl FromStr for Locale<'_> {
+    type Err = ();
+
+    fn from_str(descriptor: &str) -> Result<Self, ()> {
         let icu = if descriptor.is_empty() {
             ICULocale::UNKNOWN
         } else {
-            ICULocale::try_from_str(descriptor).ok()?
+            ICULocale::try_from_str(descriptor).map_err(|_| ())?
         };
 
-        let collator = Collator::try_new(icu.clone().into(), Default::default()).ok()?;
+        let preferences = icu.clone().into();
+        let options = Default::default();
+        let collator = Collator::try_new(preferences, options).map_err(|_| ())?;
 
-        Some(Locale {
+        Ok(Self {
             mapper: CaseMapper::new(),
             lower: CodePointSetData::new::<Lowercase>(),
             upper: CodePointSetData::new::<ChangesWhenLowercased>(),
@@ -35,7 +40,9 @@ impl Locale<'_> {
             icu,
         })
     }
+}
 
+impl Locale<'_> {
     pub fn case(&self, character: char) -> Case {
         if self.lower.contains(character) {
             Case::Lower
@@ -67,45 +74,50 @@ impl Locale<'_> {
 
 #[cfg(test)]
 mod tests {
-    use super::Case;
+    use super::{
+        Case::{Lower, Neutral, Upper},
+        Locale,
+    };
 
     const UPPERCASE_DIGRAPH: char = '\u{01C4}';
     const TITLECASE_DIGRAPH: char = '\u{01C5}';
     const LOWERCASE_DIGRAPH: char = '\u{01C6}';
 
-    fn locale<'a>(descriptor: &'a str) -> super::Locale<'a> {
-        super::Locale::try_new(descriptor).unwrap()
+    fn locale<'a>(descriptor: &'a str) -> Locale<'a> {
+        descriptor.parse().unwrap()
     }
 
     #[test]
-    fn test_valid_descriptor() {
+    fn test_valid_descriptors() {
+        locale("uk-UA");
         locale("en-US");
+        locale("en-GB");
     }
 
     #[test]
     fn test_invalid_descriptor() {
-        assert!(super::Locale::try_new("?").is_none());
+        assert!("?".parse::<Locale>().is_err());
     }
 
     #[test]
     fn test_upper() {
-        assert_eq!(locale("").case('Є'), Case::Upper);
-        assert_eq!(locale("").case(TITLECASE_DIGRAPH), Case::Upper);
-        assert_eq!(locale("").case(UPPERCASE_DIGRAPH), Case::Upper);
+        assert_eq!(locale("").case('Є'), Upper);
+        assert_eq!(locale("").case(TITLECASE_DIGRAPH), Upper);
+        assert_eq!(locale("").case(UPPERCASE_DIGRAPH), Upper);
     }
 
     #[test]
     fn test_lower() {
-        assert_eq!(locale("").case('є'), Case::Lower);
-        assert_eq!(locale("").case(LOWERCASE_DIGRAPH), Case::Lower);
+        assert_eq!(locale("").case('є'), Lower);
+        assert_eq!(locale("").case(LOWERCASE_DIGRAPH), Lower);
     }
 
     #[test]
     fn test_neutral() {
-        assert_eq!(locale("").case('1'), Case::Neutral);
-        assert_eq!(locale("").case('-'), Case::Neutral);
-        assert_eq!(locale("").case('«'), Case::Neutral);
-        assert_eq!(locale("").case('\u{1f680}' /*rocket emoji*/), Case::Neutral);
+        assert_eq!(locale("").case('1'), Neutral);
+        assert_eq!(locale("").case('-'), Neutral);
+        assert_eq!(locale("").case('«'), Neutral);
+        assert_eq!(locale("").case('\u{1f680}' /*rocket emoji*/), Neutral);
     }
 
     #[test]

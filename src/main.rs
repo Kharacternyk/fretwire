@@ -1,25 +1,28 @@
-use std::borrow::Cow;
-use std::env;
-use std::io::{BufRead, Write, stdin, stdout};
-use std::process::ExitCode;
-
-use crate::locale::Locale;
 use crate::paragraph::Paragraph;
+use std::{
+    borrow::Cow::{Borrowed, Owned},
+    env::{
+        VarError::{NotPresent, NotUnicode},
+        var,
+    },
+    io::{BufRead, Write, stdin, stdout},
+    process::ExitCode,
+};
 
 mod case;
 mod locale;
 mod paragraph;
 
 fn main() -> ExitCode {
-    let locale_descriptor = match env::var("FRETWIRE_LOCALE") {
-        Ok(string) => Cow::Owned(string),
-        Err(env::VarError::NotPresent) => Cow::Borrowed(""),
-        Err(env::VarError::NotUnicode(_)) => {
+    let locale_descriptor = match var("FRETWIRE_LOCALE") {
+        Ok(string) => Owned(string),
+        Err(NotPresent) => Borrowed(""),
+        Err(NotUnicode(_)) => {
             eprintln!("FRETWIRE_LOCALE is not valid UTF-8");
             return 1.into();
         }
     };
-    let Some(locale) = Locale::try_new(&locale_descriptor) else {
+    let Ok(locale) = locale_descriptor.parse() else {
         eprintln!("FRETWIRE_LOCALE is not a valid locale descriptor");
         return 1.into();
     };

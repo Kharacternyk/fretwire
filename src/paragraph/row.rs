@@ -1,24 +1,31 @@
+use crate::{case::Case, locale::Locale};
 use core::ops::FnOnce;
-
-use crate::case::Case;
-use crate::locale::Locale;
 
 pub struct Row {
     string: String,
 }
 
 impl From<Row> for String {
-    fn from(row: Row) -> String {
+    fn from(row: Row) -> Self {
         row.string
     }
 }
 
-impl Row {
-    pub fn new(mut string: String) -> Row {
+impl From<String> for Row {
+    fn from(mut string: String) -> Self {
         string.truncate(string.trim_end().len());
         Row { string }
     }
+}
 
+impl From<&str> for Row {
+    fn from(string: &str) -> Self {
+        let string: String = string.into();
+        string.into()
+    }
+}
+
+impl Row {
     pub fn case(&self, locale: &Locale) -> Option<Case> {
         self.string.chars().next().map(|c| locale.case(c))
     }
@@ -50,19 +57,19 @@ impl Row {
 
 #[cfg(test)]
 mod tests {
-    use crate::locale::Locale;
+    use super::{Locale, Row};
 
     #[test]
     fn test_trailing_whitespace() {
-        let row = super::Row::new("abc \t  \n".into());
+        let row: Row = "abc \t  \n".into();
         assert_eq!(row.string, "abc");
     }
 
     #[test]
     fn test_first_char_to_upper() {
-        let locale = Locale::try_new("").unwrap();
+        let locale: Locale = "".parse().unwrap();
         let string = "Some good Weather";
-        let mut row = super::Row::new(string.into());
+        let mut row: Row = string.into();
 
         assert_eq!(row.string, string);
 
@@ -70,7 +77,7 @@ mod tests {
 
         assert_eq!(row.string, string);
 
-        row = super::Row::new("some good Weather".into());
+        row = "some good Weather".into();
 
         row.first_char_to_upper(&locale);
 
@@ -79,9 +86,9 @@ mod tests {
 
     #[test]
     fn test_first_char_to_lower() {
-        let locale = Locale::try_new("").unwrap();
+        let locale: Locale = "".parse().unwrap();
         let string = "some good Weather";
-        let mut row = super::Row::new(string.into());
+        let mut row: Row = string.into();
 
         assert_eq!(row.string, string);
 
@@ -89,7 +96,7 @@ mod tests {
 
         assert_eq!(row.string, string);
 
-        row = super::Row::new("Some good Weather".into());
+        let mut row: Row = string.into();
 
         row.first_char_to_lower(&locale);
 

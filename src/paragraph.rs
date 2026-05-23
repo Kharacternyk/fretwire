@@ -1,7 +1,9 @@
 use self::row::Row;
-use crate::case::Case;
-use crate::locale::Locale;
-use std::borrow::Cow;
+use crate::{
+    case::Case::{Lower, Neutral, Upper},
+    locale::Locale,
+};
+use std::borrow::Cow::{self, Borrowed, Owned};
 
 mod row;
 
@@ -25,13 +27,13 @@ impl Paragraph<'_> {
     }
 
     pub fn feed(&mut self, string: String) -> Vec<Cow<'static, str>> {
-        let row = Row::new(string);
+        let row: Row = string.into();
 
         if let Some(case) = row.case(&self.locale) {
             match case {
-                Case::Lower => self.lower_rows.push(row),
-                Case::Upper => self.upper_rows.push(row),
-                Case::Neutral => self.neutral_rows.push(row),
+                Lower => self.lower_rows.push(row),
+                Upper => self.upper_rows.push(row),
+                Neutral => self.neutral_rows.push(row),
             }
 
             Vec::new()
@@ -58,14 +60,14 @@ impl Paragraph<'_> {
 
         for vector in self.vectors() {
             for row in vector.drain(..) {
-                result.push(Cow::Owned(row.into()));
+                result.push(Owned(row.into()));
             }
         }
 
         result.sort_by(|a, b| self.locale.compare(a, b));
 
         if self.is_delimited {
-            result.push(Cow::Borrowed(""));
+            result.push(Borrowed(""));
             self.is_delimited = false;
         }
 
@@ -84,10 +86,12 @@ impl Paragraph<'_> {
 
 #[cfg(test)]
 mod tests {
+    use super::{Locale, Paragraph};
+
     #[test]
     fn test_loop() {
-        let locale = crate::locale::Locale::try_new("").unwrap();
-        let mut paragraph = super::Paragraph::new(locale);
+        let locale: Locale = "".parse().unwrap();
+        let mut paragraph = Paragraph::new(locale);
         let mut result = Vec::new();
 
         for line in [
