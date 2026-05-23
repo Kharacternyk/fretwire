@@ -11,9 +11,6 @@ icu_properties = "2.2.0"
 writeable = "0.6.3"
 
 [lints.clippy]
-default_trait_access = {
-    level = "allow",
-    priority = 0,
-}
+default_trait_access = { level = "allow", priority = 0 }
 nursery = "warn"
 pedantic = "warn"
