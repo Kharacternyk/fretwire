@@ -14,3 +14,6 @@ writeable = "0.6.3"
 default_trait_access = { level = "allow", priority = 0 }
 nursery = "warn"
 pedantic = "warn"
+
+[dev-dependencies]
+arbtest = "0.3.2"
