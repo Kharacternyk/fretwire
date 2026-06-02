@@ -87,14 +87,43 @@ impl Paragraph<'_> {
 #[cfg(test)]
 mod tests {
     use super::{Locale, Paragraph};
+    use arbtest::arbtest;
+
+    #[test]
+    fn test_idempotence() {
+        arbtest(|u| {
+            let locale: Locale = "".parse().unwrap();
+            let mut paragraph = Paragraph::new(locale);
+            let lines: Vec<String> = u.arbitrary()?;
+
+            let mut first_result: Vec<_> = lines
+                .into_iter()
+                .map(|line| paragraph.feed(line))
+                .flatten()
+                .collect();
+
+            first_result.extend(paragraph.flush());
+
+            let mut second_result: Vec<_> = first_result
+                .clone()
+                .into_iter()
+                .map(|line| paragraph.feed(line.into_owned()))
+                .flatten()
+                .collect();
+
+            second_result.extend(paragraph.flush());
+
+            assert_eq!(first_result, second_result);
+
+            Ok(())
+        });
+    }
 
     #[test]
     fn test_loop() {
         let locale: Locale = "".parse().unwrap();
         let mut paragraph = Paragraph::new(locale);
-        let mut result = Vec::new();
-
-        for line in [
+        let mut result: Vec<_> = [
             "",
             "First line     ",
             "second line\n\r",
@@ -105,17 +134,15 @@ mod tests {
             "a",
             "C",
             "b   ",
-        ] {
-            for line in paragraph.feed(line.into()) {
-                result.push(line);
-            }
-        }
+        ]
+        .into_iter()
+        .map(|line| paragraph.feed(line.into()))
+        .flatten()
+        .collect();
 
         assert_eq!(result.len(), 7);
 
-        for line in paragraph.flush() {
-            result.push(line);
-        }
+        result.extend(paragraph.flush());
 
         assert_eq!(
             result,
