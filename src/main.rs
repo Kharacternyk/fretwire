@@ -23,7 +23,7 @@ fn print(error: &FatalError) {
     match error {
         LocaleNotUnicode => eprintln!("FRETWIRE_LOCALE is not valid UTF-8"),
         LocaleNotValid { descriptor } => {
-            eprintln!("FRETWIRE_LOCALE is not a valid locale descriptor: {descriptor:?}")
+            eprintln!("FRETWIRE_LOCALE is not a valid locale descriptor: {descriptor:?}");
         }
         IOReadError { cause } => eprintln!("Error while reading from stdin: {cause}"),
         IOWriteError { cause } => eprintln!("Error while writing to stdout: {cause}"),
