@@ -64,7 +64,8 @@ impl Paragraph<'_> {
             }
         }
 
-        result.sort_by(|a, b| self.locale.compare(a, b));
+        result.sort_unstable_by(|a, b| self.locale.compare(a, b));
+        result.dedup_by(|a, b| self.locale.compare(a, b).is_eq());
 
         if self.is_delimited {
             result.push(Borrowed(""));
@@ -141,7 +142,7 @@ mod tests {
         .flatten()
         .collect();
 
-        assert_eq!(result.len(), 8);
+        assert_eq!(result.len(), 7);
 
         result.extend(paragraph.flush());
 
@@ -150,7 +151,6 @@ mod tests {
             vec![
                 "",
                 "3 three",
-                "Another",
                 "Another",
                 "First line",
                 "Second line",
