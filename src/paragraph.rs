@@ -196,13 +196,13 @@ mod tests {
 
     #[test]
     fn test_loop() {
-        let locale: Locale = "".parse().unwrap();
+        let locale: Locale = "uk-UA".parse().unwrap();
         let mut paragraph = Paragraph::new(&locale);
 
         let mut result = Vec::new();
         for line in [
             "",
-            "First line     ",
+            "Перший рядок   ",
             "second line\n\r",
             "3 three\r\n",
             "Another  ",
@@ -215,7 +215,7 @@ mod tests {
             "x",
             "",
             "a X",
-            "C d",
+            "Є d",
             "b   ",
             "   ",
             "\n",
@@ -231,16 +231,16 @@ mod tests {
             result,
             vec![
                 "3 three",
+                "Перший рядок",
                 "Another",
-                "First line",
                 "Second line",
                 "",
                 "",
                 "x",
                 "",
+                "є d",
                 "a X",
                 "b",
-                "c d",
             ]
         );
     }
