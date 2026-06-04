@@ -27,7 +27,7 @@ pub fn format() -> Result<(), FatalError> {
         descriptor: locale_descriptor,
     })?;
 
-    let mut paragraph = Paragraph::new(locale);
+    let mut paragraph = Paragraph::new(&locale);
 
     let stdin = stdin().lock();
     let mut stdout = stdout().lock();
