@@ -61,8 +61,8 @@ mod tests {
 
     #[test]
     fn test_trailing_whitespace() {
-        let row: Row = "abc \t  \n".into();
-        assert_eq!(row.string, "abc");
+        let row: Row = " \tabc \t  \n".into();
+        assert_eq!(row.string, " \tabc");
     }
 
     #[test]
