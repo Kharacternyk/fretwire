@@ -88,9 +88,7 @@ impl Paragraph<'_> {
         result.into_iter().flatten()
     }
 
-    pub fn flush_not_empty(
-        &mut self,
-    ) -> impl Iterator<Item = Cow<'static, str>> + use<> {
+    pub fn flush_not_empty(&mut self) -> impl Iterator<Item = Cow<'static, str>> + use<> {
         if self.upper_rows.len() >= self.lower_rows.len() {
             for row in &mut self.lower_rows {
                 row.first_char_to_upper(self.locale);
@@ -124,31 +122,33 @@ impl Paragraph<'_> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Locale, Paragraph};
+    use super::{Cow, Locale, Paragraph};
     use arbtest::arbtest;
+
+    fn format(lines: impl IntoIterator<Item = String>) -> Vec<Cow<'static, str>> {
+        let locale: Locale = "".parse().unwrap();
+        let mut paragraph = Paragraph::new(&locale);
+
+        let mut result = Vec::new();
+        for line in lines {
+            result.extend(paragraph.feed(line));
+        }
+
+        result.extend(paragraph.flush());
+        result
+    }
 
     #[test]
     fn test_idempotence() {
         arbtest(|u| {
-            let locale: Locale = "".parse().unwrap();
-            let mut paragraph = Paragraph::new(&locale);
             let lines: Vec<String> = u.arbitrary()?;
-
-            let mut first_result = Vec::new();
-            for line in lines {
-                first_result.extend(paragraph.feed(line));
-            }
-
-            first_result.extend(paragraph.flush());
-
-            paragraph = Paragraph::new(&locale);
-
-            let mut second_result = Vec::new();
-            for line in first_result.clone() {
-                second_result.extend(paragraph.feed(line.into_owned()));
-            }
-
-            second_result.extend(paragraph.flush());
+            let first_result = format(lines);
+            let second_result = format(
+                first_result
+                    .clone()
+                    .into_iter()
+                    .map(|line| line.into_owned()),
+            );
 
             assert_eq!(first_result, second_result);
 
@@ -159,16 +159,8 @@ mod tests {
     #[test]
     fn test_empty_rows() {
         arbtest(|u| {
-            let locale: Locale = "".parse().unwrap();
-            let mut paragraph = Paragraph::new(&locale);
             let lines: Vec<String> = u.arbitrary()?;
-
-            let mut result = Vec::new();
-            for line in lines {
-                result.extend(paragraph.feed(line));
-            }
-
-            result.extend(paragraph.flush());
+            let result = format(lines);
 
             let mut streak = 0;
 
@@ -184,6 +176,19 @@ mod tests {
 
             assert!(result.first().map(|s| s.is_empty()) != Some(true));
             assert!(result.last().map(|s| s.is_empty()) != Some(true));
+
+            Ok(())
+        });
+    }
+
+    #[test]
+    fn test_row_count() {
+        arbtest(|u| {
+            let lines: Vec<String> = u.arbitrary()?;
+            let length = lines.len();
+            let result = format(lines);
+
+            assert!(length >= result.len());
 
             Ok(())
         });
