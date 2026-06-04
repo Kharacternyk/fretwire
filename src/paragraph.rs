@@ -45,7 +45,7 @@ impl Paragraph<'_> {
     }
 
     pub fn flush(&mut self) -> Vec<Cow<'static, str>> {
-        if self.upper_rows.len() > self.lower_rows.len() {
+        if self.upper_rows.len() >= self.lower_rows.len() {
             for row in &mut self.lower_rows {
                 row.first_char_to_upper(&self.locale);
             }
@@ -129,10 +129,11 @@ mod tests {
             "second line\n\r",
             "3 three\r\n",
             "Another  ",
+            "another",
             "   ",
             "",
-            "a",
-            "C",
+            "a X",
+            "C d",
             "b   ",
         ]
         .into_iter()
@@ -140,7 +141,7 @@ mod tests {
         .flatten()
         .collect();
 
-        assert_eq!(result.len(), 7);
+        assert_eq!(result.len(), 8);
 
         result.extend(paragraph.flush());
 
@@ -150,13 +151,14 @@ mod tests {
                 "",
                 "3 three",
                 "Another",
+                "Another",
                 "First line",
                 "Second line",
                 "",
                 "",
-                "a",
+                "a X",
                 "b",
-                "c",
+                "c d",
             ]
         );
     }
