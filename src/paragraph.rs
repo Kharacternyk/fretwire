@@ -1,8 +1,9 @@
 use self::row::Row;
 use crate::{
     case::Case::{Lower, Neutral, Upper},
-    settings::Settings,
+    locale::Locale,
 };
+use indexmap::IndexMap;
 use std::{
     borrow::Cow::{self, Borrowed, Owned},
     iter::repeat_n,
@@ -11,6 +12,9 @@ use std::{
 mod row;
 
 pub struct Paragraph<'a> {
+    locale: &'a Locale,
+    move_marker: &'a str,
+
     lower_rows: Vec<Row>,
     upper_rows: Vec<Row>,
     neutral_rows: Vec<Row>,
@@ -19,12 +23,15 @@ pub struct Paragraph<'a> {
     body_count: usize,
     trailing_count: u8,
 
-    settings: &'a Settings,
+    detached_rows: IndexMap<String, Vec<String>>,
 }
 
 impl Paragraph<'_> {
-    pub const fn new(settings: &Settings) -> Paragraph<'_> {
+    pub fn new<'a>(locale: &'a Locale, move_marker: &'a str) -> Paragraph<'a> {
         Paragraph {
+            locale,
+            move_marker,
+
             lower_rows: Vec::new(),
             upper_rows: Vec::new(),
             neutral_rows: Vec::new(),
@@ -33,8 +40,12 @@ impl Paragraph<'_> {
             body_count: 0,
             trailing_count: 0,
 
-            settings,
+            detached_rows: IndexMap::new(),
         }
+    }
+
+    pub fn detached_rows(self) -> IndexMap<String, Vec<String>> {
+        self.detached_rows
     }
 
     pub fn feed(&mut self, string: String) -> impl Iterator<Item = Cow<'static, str>> {
@@ -43,11 +54,28 @@ impl Paragraph<'_> {
 
     fn feed_option(
         &mut self,
-        string: String,
+        mut string: String,
     ) -> Option<impl Iterator<Item = Cow<'static, str>>> {
-        let row: Row = string.into();
+        match string.split_once(self.move_marker) {
+            Some((body, destination)) => {
+                let destination: String = destination.trim().into();
 
-        if let Some(case) = row.case(&self.settings.locale) {
+                if !destination.is_empty() {
+                    string.truncate(body.len());
+                    self.detached_rows
+                        .entry(destination)
+                        .or_default()
+                        .push(string);
+                }
+
+                None
+            }
+            _ => self.feed_row(string.into()),
+        }
+    }
+
+    fn feed_row(&mut self, row: Row) -> Option<impl Iterator<Item = Cow<'static, str>>> {
+        if let Some(case) = row.case(self.locale) {
             let result = if self.trailing_count > 0 {
                 let result = Some(self.flush_not_empty());
 
@@ -91,11 +119,11 @@ impl Paragraph<'_> {
     pub fn flush_not_empty(&mut self) -> impl Iterator<Item = Cow<'static, str>> + use<> {
         if self.upper_rows.len() >= self.lower_rows.len() {
             for row in &mut self.lower_rows {
-                row.first_char_to_upper(&self.settings.locale);
+                row.first_char_to_upper(self.locale);
             }
         } else {
             for row in &mut self.upper_rows {
-                row.first_char_to_lower(&self.settings.locale);
+                row.first_char_to_lower(self.locale);
             }
         }
 
@@ -111,8 +139,8 @@ impl Paragraph<'_> {
             }
         }
 
-        result.sort_unstable_by(|a, b| self.settings.locale.compare(a, b));
-        result.dedup_by(|a, b| self.settings.locale.compare(a, b).is_eq());
+        result.sort_unstable_by(|a, b| self.locale.compare(a, b));
+        result.dedup_by(|a, b| self.locale.compare(a, b).is_eq());
 
         let leading = repeat_n(Borrowed(""), self.leading_count.into());
 
@@ -122,14 +150,12 @@ impl Paragraph<'_> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Cow, Paragraph, Settings};
+    use super::{Cow, IndexMap, Locale, Paragraph};
     use arbtest::arbtest;
 
     fn format(lines: impl IntoIterator<Item = String>) -> Vec<Cow<'static, str>> {
-        let settings = Settings {
-            locale: "".parse().unwrap(),
-        };
-        let mut paragraph = Paragraph::new(&settings);
+        let locale: Locale = "".parse().unwrap();
+        let mut paragraph = Paragraph::new(&locale, " ");
 
         let mut result = Vec::new();
         for line in lines {
@@ -198,19 +224,21 @@ mod tests {
 
     #[test]
     fn test_loop() {
-        let settings = Settings {
-            locale: "uk-UA".parse().unwrap(),
-        };
-        let mut paragraph = Paragraph::new(&settings);
+        let locale: Locale = "uk-UA".parse().unwrap();
+        let mut paragraph = Paragraph::new(&locale, ">>");
 
         let mut result = Vec::new();
         for line in [
             "",
             "Перший рядок   ",
             "second line\n\r",
-            "3 three\r\n",
             "Another  ",
+            "delete me >>",
+            "delete me as well >>  ",
             "another",
+            "3 three\r\n",
+            "move me \t>> destination \n",
+            "move me 2>> destination \n",
             "   ",
             "",
             "",
@@ -247,5 +275,14 @@ mod tests {
                 "b",
             ]
         );
+
+        let mut detached_rows = IndexMap::new();
+
+        detached_rows.insert(
+            "destination".into(),
+            vec!["move me \t".to_owned(), "move me 2".into()],
+        );
+
+        assert_eq!(paragraph.detached_rows(), detached_rows);
     }
 }

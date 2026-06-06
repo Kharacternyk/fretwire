@@ -9,10 +9,12 @@ icu_casemap = "2.2.0"
 icu_collator = "2.2.0"
 icu_locale = "2.2.0"
 icu_properties = "2.2.0"
+indexmap = "2.14.0"
 writeable = "0.6.3"
 
 [lints.clippy]
 default_trait_access = { level = "allow", priority = 2 }
+enum_variant_names = { level = "allow", priority = 2 }
 nursery = "warn"
 pedantic = "warn"
 

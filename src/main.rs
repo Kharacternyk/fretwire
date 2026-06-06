@@ -1,7 +1,7 @@
 use crate::{
     entrypoint::{
         entrypoint,
-        error::Error::{self, ClapError, FormatError},
+        error::Error::{self, ClapError, FileError, ForbiddenExternalWrite, FormatError},
     },
     format::error::Error::{ReadError, WriteError},
 };
@@ -13,7 +13,6 @@ mod entrypoint;
 mod format;
 mod locale;
 mod paragraph;
-mod settings;
 
 fn main() -> ExitCode {
     entrypoint()
@@ -29,11 +28,31 @@ fn print(error: &Error) {
                 eprintln!("Error while parsing settings");
             }
         }
-        FormatError(ReadError(error)) => {
-            eprintln!("Error while reading from stdin: {error}");
+        FormatError {
+            name,
+            error: ReadError(error),
+        } => {
+            eprint!("Error while reading from ");
+            match name {
+                Some(name) => eprint!("{name:?}: {error}"),
+                _ => eprint!("stdin: {error}"),
+            }
         }
-        FormatError(WriteError(error)) => {
-            eprintln!("Error while writing to stdout: {error}");
+        FormatError {
+            name,
+            error: WriteError(error),
+        } => {
+            eprint!("Error while writing to ");
+            match name {
+                Some(name) => eprint!("{name:?}: {error}"),
+                _ => eprint!("stdout: {error}"),
+            }
+        }
+        FileError { name, error } => {
+            eprintln!("Error while managing {name:?} in-place: {error}");
+        }
+        ForbiddenExternalWrite { string, name } => {
+            eprintln!("External write of {string:?} to {name:?} is forbidden");
         }
     }
 }
@@ -44,7 +63,15 @@ fn exit_code(error: &Error) -> ExitCode {
             DisplayHelp | DisplayVersion => ExitCode::SUCCESS,
             _ => 1.into(),
         },
-        FormatError(ReadError(_)) => 2.into(),
-        FormatError(WriteError(_)) => 3.into(),
+        FormatError {
+            error: ReadError(_),
+            ..
+        } => 2.into(),
+        FormatError {
+            error: WriteError(_),
+            ..
+        } => 3.into(),
+        FileError { .. } => 4.into(),
+        ForbiddenExternalWrite { .. } => 5.into(),
     }
 }

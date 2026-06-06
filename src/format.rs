@@ -1,16 +1,20 @@
 use self::error::Error::{self, ReadError, WriteError};
-use crate::{paragraph::Paragraph, settings::Settings};
-use std::borrow::Cow;
-use std::io::{BufRead, Write};
+use crate::{locale::Locale, paragraph::Paragraph};
+use indexmap::IndexMap;
+use std::{
+    borrow::Cow,
+    io::{BufRead, Write},
+};
 
 pub mod error;
 
 pub fn format(
     source: &mut impl BufRead,
     mut sink: &mut impl Write,
-    settings: &Settings,
-) -> Result<(), Error> {
-    let mut paragraph = Paragraph::new(settings);
+    locale: &Locale,
+    move_marker: &str,
+) -> Result<IndexMap<String, Vec<String>>, Error> {
+    let mut paragraph = Paragraph::new(locale, move_marker);
 
     for line in source.lines() {
         let line = line.map_err(ReadError)?;
@@ -20,7 +24,7 @@ pub fn format(
 
     write(&mut sink, paragraph.flush())?;
 
-    Ok(())
+    Ok(paragraph.detached_rows())
 }
 
 fn write(
