@@ -1,57 +1,35 @@
-use crate::{
-    fatal_error::FatalError::{
-        self, IOReadError, IOWriteError, LocaleNotUnicode, LocaleNotValid,
-    },
-    paragraph::Paragraph,
-};
-use std::{borrow::Cow, io::StdoutLock};
-use std::{
-    borrow::Cow::{Borrowed, Owned},
-    env::{
-        VarError::{NotPresent, NotUnicode},
-        var,
-    },
-    io::{BufRead, Write, stdin, stdout},
-};
+use self::error::Error::{self, ReadError, WriteError};
+use crate::{paragraph::Paragraph, settings::Settings};
+use std::borrow::Cow;
+use std::io::{BufRead, Write};
 
-pub fn format() -> Result<(), FatalError> {
-    let locale_descriptor =
-        var("FRETWIRE_LOCALE")
-            .map(Owned)
-            .or_else(|error| match error {
-                NotPresent => Ok(Borrowed("")),
-                NotUnicode(_) => Err(LocaleNotUnicode),
-            })?;
+pub mod error;
 
-    let locale = locale_descriptor.parse().map_err(|()| LocaleNotValid {
-        descriptor: locale_descriptor,
-    })?;
+pub fn format(
+    source: &mut impl BufRead,
+    mut sink: &mut impl Write,
+    settings: &Settings,
+) -> Result<(), Error> {
+    let mut paragraph = Paragraph::new(settings);
 
-    let mut paragraph = Paragraph::new(&locale);
+    for line in source.lines() {
+        let line = line.map_err(ReadError)?;
 
-    let stdin = stdin().lock();
-    let mut stdout = stdout().lock();
-
-    for line in stdin.lines() {
-        let line = line.map_err(|cause| IOReadError { cause })?;
-
-        write(&mut stdout, paragraph.feed(line))?;
+        write(&mut sink, paragraph.feed(line))?;
     }
 
-    write(&mut stdout, paragraph.flush())?;
+    write(&mut sink, paragraph.flush())?;
 
     Ok(())
 }
 
 fn write(
-    stdout: &mut StdoutLock,
+    stdout: &mut impl Write,
     lines: impl IntoIterator<Item = Cow<'static, str>>,
-) -> Result<(), FatalError> {
+) -> Result<(), Error> {
     for line in lines {
         for chunk in [line.as_bytes(), b"\n"] {
-            stdout
-                .write_all(chunk)
-                .map_err(|cause| IOWriteError { cause })?;
+            stdout.write_all(chunk).map_err(WriteError)?;
         }
     }
 

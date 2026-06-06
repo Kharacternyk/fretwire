@@ -1,7 +1,7 @@
 use self::row::Row;
 use crate::{
     case::Case::{Lower, Neutral, Upper},
-    locale::Locale,
+    settings::Settings,
 };
 use std::{
     borrow::Cow::{self, Borrowed, Owned},
@@ -19,11 +19,11 @@ pub struct Paragraph<'a> {
     body_count: usize,
     trailing_count: u8,
 
-    locale: &'a Locale<'a>,
+    settings: &'a Settings,
 }
 
 impl Paragraph<'_> {
-    pub const fn new<'a>(locale: &'a Locale) -> Paragraph<'a> {
+    pub const fn new(settings: &Settings) -> Paragraph<'_> {
         Paragraph {
             lower_rows: Vec::new(),
             upper_rows: Vec::new(),
@@ -33,7 +33,7 @@ impl Paragraph<'_> {
             body_count: 0,
             trailing_count: 0,
 
-            locale,
+            settings,
         }
     }
 
@@ -47,7 +47,7 @@ impl Paragraph<'_> {
     ) -> Option<impl Iterator<Item = Cow<'static, str>>> {
         let row: Row = string.into();
 
-        if let Some(case) = row.case(self.locale) {
+        if let Some(case) = row.case(&self.settings.locale) {
             let result = if self.trailing_count > 0 {
                 let result = Some(self.flush_not_empty());
 
@@ -91,11 +91,11 @@ impl Paragraph<'_> {
     pub fn flush_not_empty(&mut self) -> impl Iterator<Item = Cow<'static, str>> + use<> {
         if self.upper_rows.len() >= self.lower_rows.len() {
             for row in &mut self.lower_rows {
-                row.first_char_to_upper(self.locale);
+                row.first_char_to_upper(&self.settings.locale);
             }
         } else {
             for row in &mut self.upper_rows {
-                row.first_char_to_lower(self.locale);
+                row.first_char_to_lower(&self.settings.locale);
             }
         }
 
@@ -111,8 +111,8 @@ impl Paragraph<'_> {
             }
         }
 
-        result.sort_unstable_by(|a, b| self.locale.compare(a, b));
-        result.dedup_by(|a, b| self.locale.compare(a, b).is_eq());
+        result.sort_unstable_by(|a, b| self.settings.locale.compare(a, b));
+        result.dedup_by(|a, b| self.settings.locale.compare(a, b).is_eq());
 
         let leading = repeat_n(Borrowed(""), self.leading_count.into());
 
@@ -122,12 +122,14 @@ impl Paragraph<'_> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Cow, Locale, Paragraph};
+    use super::{Cow, Paragraph, Settings};
     use arbtest::arbtest;
 
     fn format(lines: impl IntoIterator<Item = String>) -> Vec<Cow<'static, str>> {
-        let locale: Locale = "".parse().unwrap();
-        let mut paragraph = Paragraph::new(&locale);
+        let settings = Settings {
+            locale: "".parse().unwrap(),
+        };
+        let mut paragraph = Paragraph::new(&settings);
 
         let mut result = Vec::new();
         for line in lines {
@@ -196,8 +198,10 @@ mod tests {
 
     #[test]
     fn test_loop() {
-        let locale: Locale = "uk-UA".parse().unwrap();
-        let mut paragraph = Paragraph::new(&locale);
+        let settings = Settings {
+            locale: "uk-UA".parse().unwrap(),
+        };
+        let mut paragraph = Paragraph::new(&settings);
 
         let mut result = Vec::new();
         for line in [

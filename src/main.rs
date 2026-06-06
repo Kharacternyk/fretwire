@@ -1,39 +1,50 @@
 use crate::{
-    fatal_error::FatalError::{
-        self, IOReadError, IOWriteError, LocaleNotUnicode, LocaleNotValid,
+    entrypoint::{
+        entrypoint,
+        error::Error::{self, ClapError, FormatError},
     },
-    format::format,
+    format::error::Error::{ReadError, WriteError},
 };
+use clap::error::ErrorKind::{DisplayHelp, DisplayVersion};
 use std::process::ExitCode;
 
 mod case;
-mod fatal_error;
+mod entrypoint;
 mod format;
 mod locale;
 mod paragraph;
+mod settings;
 
 fn main() -> ExitCode {
-    format()
+    entrypoint()
         .map(|()| ExitCode::SUCCESS)
         .inspect_err(print)
-        .unwrap_or_else(|error| exit_code(&error).into())
+        .unwrap_or_else(|error| exit_code(&error))
 }
 
-fn print(error: &FatalError) {
+fn print(error: &Error) {
     match error {
-        LocaleNotUnicode => eprintln!("FRETWIRE_LOCALE is not valid UTF-8"),
-        LocaleNotValid { descriptor } => {
-            eprintln!("FRETWIRE_LOCALE is not a valid locale descriptor: {descriptor:?}");
+        ClapError(error) => {
+            if error.print().is_err() {
+                eprintln!("Error while parsing settings");
+            }
         }
-        IOReadError { cause } => eprintln!("Error while reading from stdin: {cause}"),
-        IOWriteError { cause } => eprintln!("Error while writing to stdout: {cause}"),
+        FormatError(ReadError(error)) => {
+            eprintln!("Error while reading from stdin: {error}");
+        }
+        FormatError(WriteError(error)) => {
+            eprintln!("Error while writing to stdout: {error}");
+        }
     }
 }
 
-const fn exit_code(error: &FatalError) -> u8 {
+fn exit_code(error: &Error) -> ExitCode {
     match error {
-        LocaleNotUnicode | LocaleNotValid { .. } => 1,
-        IOReadError { .. } => 2,
-        IOWriteError { .. } => 3,
+        ClapError(error) => match error.kind() {
+            DisplayHelp | DisplayVersion => ExitCode::SUCCESS,
+            _ => 1.into(),
+        },
+        FormatError(ReadError(_)) => 2.into(),
+        FormatError(WriteError(_)) => 3.into(),
     }
 }

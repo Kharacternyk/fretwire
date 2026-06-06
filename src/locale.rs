@@ -7,18 +7,19 @@ use icu_properties::{
     CodePointSetData, CodePointSetDataBorrowed,
     props::{ChangesWhenLowercased, Lowercase},
 };
-use std::str::FromStr;
+use std::{str::FromStr, sync::Arc};
 use writeable::Writeable;
 
-pub struct Locale<'a> {
-    mapper: CaseMapperBorrowed<'a>,
-    lower: CodePointSetDataBorrowed<'a>,
-    upper: CodePointSetDataBorrowed<'a>,
-    collator: CollatorBorrowed<'a>,
+#[derive(Clone)]
+pub struct Locale {
+    mapper: CaseMapperBorrowed<'static>,
+    lower: CodePointSetDataBorrowed<'static>,
+    upper: CodePointSetDataBorrowed<'static>,
+    collator: Arc<CollatorBorrowed<'static>>,
     icu: ICULocale,
 }
 
-impl FromStr for Locale<'_> {
+impl FromStr for Locale {
     type Err = ();
 
     fn from_str(descriptor: &str) -> Result<Self, ()> {
@@ -30,7 +31,7 @@ impl FromStr for Locale<'_> {
 
         let preferences = icu.clone().into();
         let options = Default::default();
-        let collator = Collator::try_new(preferences, options).map_err(|_| ())?;
+        let collator = Arc::new(Collator::try_new(preferences, options).map_err(|_| ())?);
 
         Ok(Self {
             mapper: CaseMapper::new(),
@@ -42,7 +43,7 @@ impl FromStr for Locale<'_> {
     }
 }
 
-impl Locale<'_> {
+impl Locale {
     pub fn case(&self, character: char) -> Case {
         if self.lower.contains(character) {
             Case::Lower
@@ -83,7 +84,7 @@ mod tests {
     const TITLECASE_DIGRAPH: char = '\u{01C5}';
     const LOWERCASE_DIGRAPH: char = '\u{01C6}';
 
-    fn locale<'a>(descriptor: &'a str) -> Locale<'a> {
+    fn locale<'a>(descriptor: &str) -> Locale {
         descriptor.parse().unwrap()
     }
 
