@@ -51,3 +51,74 @@ fn write(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{HashMap, Locale, format};
+    use std::io::BufReader;
+
+    #[test]
+    fn test_format() {
+        let locale: Locale = "uk-UA".parse().unwrap();
+        let content = vec![
+            "",
+            "Перший рядок   ",
+            "second line",
+            "Another  ",
+            "move me \t:> destination   ",
+            "delete me     :> \t",
+            "another",
+            "move me as well:>destination ",
+            "move me not there:>  destination2",
+            "3 three",
+            "   ",
+            "",
+            "",
+            "\n",
+            "",
+            "x",
+            "",
+            "a X",
+            "Є d",
+            "b   ",
+            "   ",
+            "",
+        ]
+        .join("\n")
+        .into_bytes();
+
+        let mut source = BufReader::new(&content[..]);
+        let mut sink: Vec<u8> = Vec::new();
+
+        let mut result = HashMap::new();
+        result.insert(
+            "destination".into(),
+            vec!["move me \t".into(), "move me as well".into()],
+        );
+        result.insert("destination2".into(), vec!["move me not there".into()]);
+
+        assert_eq!(
+            format(&mut source, &mut sink, &locale, ":>").unwrap(),
+            result
+        );
+
+        assert_eq!(
+            String::from_utf8(sink).unwrap(),
+            vec![
+                "3 three",
+                "Перший рядок",
+                "Another",
+                "Second line",
+                "",
+                "",
+                "x",
+                "",
+                "є d",
+                "a X",
+                "b",
+                "",
+            ]
+            .join("\n")
+        );
+    }
+}
