@@ -4,7 +4,7 @@ endif
 
 syntax match fretwireMovedLine "^.\{-}\ze\s*:>\s*\S"
 syntax match fretwireDeletedLine "^.\{-}\ze\s*:>\s*$"
-syntax match fretwireDestination ":>\s*\zs.*$" contains=fretwireMoveMarker
+syntax match fretwireDestination "\%(:>\s*\)\@<=\S.*$" contains=fretwireMoveMarker
 syntax match fretwireMoveMarker ":>" containedin=ALL
 
 highlight default link fretwireMovedLine DiagnosticSignWarn
