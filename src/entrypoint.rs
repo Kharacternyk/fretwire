@@ -17,11 +17,7 @@ use core::iter::empty;
 use std::{
     collections::HashMap,
     fs::OpenOptions,
-    io::{
-        self, BufReader, Seek,
-        SeekFrom::{End, Start},
-        Write, stdin, stdout,
-    },
+    io::{self, BufReader, Seek, SeekFrom::Start, Write, stdin, stdout},
 };
 
 pub mod error;
@@ -40,7 +36,7 @@ pub fn entrypoint() -> Result<(), Error> {
             })
         } else {
             for (name, lines) in lines {
-                format_file(&name, &settings.locale, "", lines, |lines| {
+                format_file(&name, &settings.locale, "", lines, true, |lines| {
                     assert!(lines.is_empty());
 
                     Ok(())
@@ -59,6 +55,7 @@ pub fn entrypoint() -> Result<(), Error> {
                 &settings.locale,
                 &settings.move_marker,
                 empty(),
+                false,
                 move_lines,
             )
         },
@@ -86,6 +83,7 @@ fn format_file(
     locale: &Locale,
     move_marker: &str,
     append_rows: impl IntoIterator<Item = String>,
+    allow_creation: bool,
     move_lines: impl FnOnce(HashMap<String, Vec<String>>) -> Result<(), Error>,
 ) -> Result<(), Error> {
     let file_failed = |error: io::Error| -> Error {
@@ -104,11 +102,10 @@ fn format_file(
     let mut buffer = Vec::new();
     let mut file = OpenOptions::new()
         .read(true)
-        .write(true)
+        .append(true)
+        .create(allow_creation)
         .open(name)
         .map_err(file_failed)?;
-
-    file.seek(End(0)).map_err(file_failed)?;
 
     for row in append_rows {
         file.write_all(row.as_bytes()).map_err(write_failed)?;

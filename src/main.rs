@@ -51,7 +51,7 @@ fn print(error: &Error) {
             }
         }
         FileOperationFailed { name, error } => {
-            eprintln!("Error while managing {name:?} in-place: {error}");
+            eprintln!("Error while working with {name:?}: {error}");
         }
         ExternalWriteForbidden { string, name } => {
             eprintln!("External write of {string:?} to {name:?} is forbidden");
