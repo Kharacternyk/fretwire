@@ -16,8 +16,7 @@
             src = ./.;
           };
           vim = pkgs.vimUtils.buildVimPlugin {
-            pname = "vim-fretwire";
-            version = "0.1.0";
+            name = "fretwire";
             src = ./vim;
           };
         };
