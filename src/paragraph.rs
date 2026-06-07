@@ -1,21 +1,18 @@
-use self::row::Row;
 use crate::{
     case::Case::{Lower, Neutral, Upper},
-    locale::Locale,
+    locale::{Locale, cased_string::CasedString},
 };
 use std::{
     borrow::Cow::{self, Borrowed, Owned},
     iter::repeat_n,
 };
 
-mod row;
-
 pub struct Paragraph<'a> {
     locale: &'a Locale,
 
-    lower_rows: Vec<Row>,
-    upper_rows: Vec<Row>,
-    neutral_rows: Vec<Row>,
+    lower_lines: Vec<String>,
+    upper_lines: Vec<String>,
+    neutral_lines: Vec<String>,
 
     leading_count: u8,
     body_count: usize,
@@ -27,9 +24,9 @@ impl Paragraph<'_> {
         Paragraph {
             locale,
 
-            lower_rows: Vec::new(),
-            upper_rows: Vec::new(),
-            neutral_rows: Vec::new(),
+            lower_lines: Vec::new(),
+            upper_lines: Vec::new(),
+            neutral_lines: Vec::new(),
 
             leading_count: 0,
             body_count: 0,
@@ -37,17 +34,17 @@ impl Paragraph<'_> {
         }
     }
 
-    pub fn feed(&mut self, string: String) -> impl Iterator<Item = Cow<'static, str>> {
-        self.feed_option(string).into_iter().flatten()
+    pub fn feed(&mut self, line: String) -> impl Iterator<Item = Cow<'static, str>> {
+        self.feed_option(line).into_iter().flatten()
     }
 
     fn feed_option(
         &mut self,
-        string: String,
+        mut line: String,
     ) -> Option<impl Iterator<Item = Cow<'static, str>>> {
-        let row: Row = string.into();
+        line.truncate(line.trim_end().len());
 
-        if let Some(case) = row.case(self.locale) {
+        if let Some(case) = line.first_char_case(self.locale) {
             let result = if self.trailing_count > 0 {
                 let result = Some(self.flush_not_empty());
 
@@ -63,9 +60,9 @@ impl Paragraph<'_> {
             };
 
             match case {
-                Lower => self.lower_rows.push(row),
-                Upper => self.upper_rows.push(row),
-                Neutral => self.neutral_rows.push(row),
+                Lower => self.lower_lines.push(line),
+                Upper => self.upper_lines.push(line),
+                Neutral => self.neutral_lines.push(line),
             }
 
             result
@@ -89,25 +86,25 @@ impl Paragraph<'_> {
     }
 
     pub fn flush_not_empty(&mut self) -> impl Iterator<Item = Cow<'static, str>> + use<> {
-        if self.upper_rows.len() >= self.lower_rows.len() {
-            for row in &mut self.lower_rows {
-                row.first_char_to_upper(self.locale);
+        if self.upper_lines.len() >= self.lower_lines.len() {
+            for line in &mut self.lower_lines {
+                line.first_char_to_upper(self.locale);
             }
         } else {
-            for row in &mut self.upper_rows {
-                row.first_char_to_lower(self.locale);
+            for line in &mut self.upper_lines {
+                line.first_char_to_lower(self.locale);
             }
         }
 
         let mut result = Vec::with_capacity(self.body_count);
 
         for vector in [
-            &mut self.lower_rows,
-            &mut self.upper_rows,
-            &mut self.neutral_rows,
+            &mut self.lower_lines,
+            &mut self.upper_lines,
+            &mut self.neutral_lines,
         ] {
-            for row in vector.drain(..) {
-                result.push(Owned(row.into()));
+            for line in vector.drain(..) {
+                result.push(Owned(line));
             }
         }
 
@@ -157,7 +154,7 @@ mod tests {
     }
 
     #[test]
-    fn test_empty_rows() {
+    fn test_empty_lines() {
         arbtest(|u| {
             let lines: Vec<String> = u.arbitrary()?;
             let result = format(lines);
@@ -182,7 +179,7 @@ mod tests {
     }
 
     #[test]
-    fn test_row_count() {
+    fn test_line_count() {
         arbtest(|u| {
             let lines: Vec<String> = u.arbitrary()?;
             let length = lines.len();

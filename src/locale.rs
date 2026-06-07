@@ -10,6 +10,8 @@ use icu_properties::{
 use std::{str::FromStr, sync::Arc};
 use writeable::Writeable;
 
+pub mod cased_string;
+
 #[derive(Clone)]
 pub struct Locale {
     mapper: CaseMapperBorrowed<'static>,
@@ -44,7 +46,7 @@ impl FromStr for Locale {
 }
 
 impl Locale {
-    pub fn case(&self, character: char) -> Case {
+    fn case(&self, character: char) -> Case {
         if self.lower.contains(character) {
             Case::Lower
         } else if self.upper.contains(character) {
@@ -54,14 +56,14 @@ impl Locale {
         }
     }
 
-    pub fn to_title(&self, string: &str) -> String {
+    fn to_title(&self, string: &str) -> String {
         self.mapper
             .titlecase_segment_with_only_case_data(string, &self.icu.id, Default::default())
             .write_to_string()
             .into_owned()
     }
 
-    pub fn to_lower(&self, string: &str) -> String {
+    fn to_lower(&self, string: &str) -> String {
         self.mapper
             .lowercase(string, &self.icu.id)
             .write_to_string()
