@@ -1,9 +1,9 @@
 use crate::{
     entrypoint::{
-        entrypoint,
         error::Error::{
             self, ClapFailed, ExternalWriteForbidden, FileOperationFailed, FormatFailed,
         },
+        run,
     },
     format::error::Error::{ReadFailed, WriteFailed},
 };
@@ -17,7 +17,7 @@ mod locale;
 mod paragraph;
 
 fn main() -> ExitCode {
-    entrypoint()
+    run()
         .map(|()| ExitCode::SUCCESS)
         .inspect_err(print)
         .unwrap_or_else(|error| exit_code(&error))

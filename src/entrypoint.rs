@@ -23,7 +23,7 @@ use std::{
 pub mod error;
 mod settings;
 
-pub fn entrypoint() -> Result<(), Error> {
+pub fn run() -> Result<(), Error> {
     let settings = Settings::try_parse().map_err(ClapFailed)?;
 
     let move_lines = |lines: HashMap<String, Vec<String>>| -> Result<(), Error> {
