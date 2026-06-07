@@ -36,8 +36,8 @@ fn print(error: &Error) {
         } => {
             eprint!("Error while reading from ");
             match name {
-                Some(name) => eprint!("{name:?}: {error}"),
-                _ => eprint!("stdin: {error}"),
+                Some(name) => eprintln!("{name:?}: {error}"),
+                _ => eprintln!("stdin: {error}"),
             }
         }
         FormatFailed {
@@ -46,8 +46,8 @@ fn print(error: &Error) {
         } => {
             eprint!("Error while writing to ");
             match name {
-                Some(name) => eprint!("{name:?}: {error}"),
-                _ => eprint!("stdout: {error}"),
+                Some(name) => eprintln!("{name:?}: {error}"),
+                _ => eprintln!("stdout: {error}"),
             }
         }
         FileOperationFailed { name, error } => {

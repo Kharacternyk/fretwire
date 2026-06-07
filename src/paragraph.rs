@@ -85,7 +85,7 @@ impl Paragraph<'_> {
         result.into_iter().flatten()
     }
 
-    pub fn flush_not_empty(&mut self) -> impl Iterator<Item = Cow<'static, str>> + use<> {
+    fn flush_not_empty(&mut self) -> impl Iterator<Item = Cow<'static, str>> + use<> {
         if self.upper_lines.len() >= self.lower_lines.len() {
             for line in &mut self.lower_lines {
                 line.first_char_to_upper(self.locale);
@@ -211,6 +211,9 @@ mod tests {
             "",
             "x",
             "",
+            "a",
+            "B",
+            "",
             "a X",
             "Є d",
             "b   ",
@@ -220,7 +223,7 @@ mod tests {
             result.extend(paragraph.feed(line.into()));
         }
 
-        assert_eq!(result.len(), 7);
+        assert_eq!(result.len(), 10);
 
         result.extend(paragraph.flush());
 
@@ -234,6 +237,9 @@ mod tests {
                 "",
                 "",
                 "x",
+                "",
+                "A",
+                "B",
                 "",
                 "є d",
                 "a X",

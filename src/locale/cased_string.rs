@@ -32,6 +32,8 @@ fn transform_first_char(string: &mut String, transform: impl FnOnce(&str) -> Str
         new_string.push_str(&string[i..]);
 
         *string = new_string;
+    } else {
+        *string = transform(string);
     }
 }
 

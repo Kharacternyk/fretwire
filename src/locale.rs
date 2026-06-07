@@ -86,7 +86,7 @@ mod tests {
     const TITLECASE_DIGRAPH: char = '\u{01C5}';
     const LOWERCASE_DIGRAPH: char = '\u{01C6}';
 
-    fn locale<'a>(descriptor: &str) -> Locale {
+    fn locale(descriptor: &str) -> Locale {
         descriptor.parse().unwrap()
     }
 
