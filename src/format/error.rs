@@ -1,6 +1,6 @@
 use std::io;
 
 pub enum Error {
-    ReadError(io::Error),
-    WriteError(io::Error),
+    ReadFailed(io::Error),
+    WriteFailed(io::Error),
 }

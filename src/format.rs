@@ -1,8 +1,8 @@
-use self::error::Error::{self, ReadError, WriteError};
+use self::error::Error::{self, ReadFailed, WriteFailed};
 use crate::{locale::Locale, paragraph::Paragraph};
-use indexmap::IndexMap;
 use std::{
     borrow::Cow,
+    collections::HashMap,
     io::{BufRead, Write},
 };
 
@@ -13,18 +13,30 @@ pub fn format(
     mut sink: &mut impl Write,
     locale: &Locale,
     move_marker: &str,
-) -> Result<IndexMap<String, Vec<String>>, Error> {
-    let mut paragraph = Paragraph::new(locale, move_marker);
+) -> Result<HashMap<String, Vec<String>>, Error> {
+    let mut result: HashMap<String, Vec<String>> = HashMap::new();
+    let mut paragraph = Paragraph::new(locale);
 
     for line in source.lines() {
-        let line = line.map_err(ReadError)?;
+        let mut line = line.map_err(ReadFailed)?;
 
-        write(&mut sink, paragraph.feed(line))?;
+        if !move_marker.is_empty()
+            && let Some((body, destination)) = line.split_once(move_marker)
+        {
+            let destination: String = destination.trim().into();
+
+            if !destination.is_empty() {
+                line.truncate(body.len());
+                result.entry(destination).or_default().push(line);
+            }
+        } else {
+            write(&mut sink, paragraph.feed(line))?;
+        }
     }
 
     write(&mut sink, paragraph.flush())?;
 
-    Ok(paragraph.detached_rows())
+    Ok(result)
 }
 
 fn write(
@@ -33,7 +45,7 @@ fn write(
 ) -> Result<(), Error> {
     for line in lines {
         for chunk in [line.as_bytes(), b"\n"] {
-            stdout.write_all(chunk).map_err(WriteError)?;
+            stdout.write_all(chunk).map_err(WriteFailed)?;
         }
     }
 

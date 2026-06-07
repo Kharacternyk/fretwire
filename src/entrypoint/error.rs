@@ -2,17 +2,17 @@ use crate::format;
 use std::io;
 
 pub enum Error {
-    ForbiddenExternalWrite {
+    ExternalWriteForbidden {
         string: String,
         name: String,
     },
-    FileError {
+    FileOperationFailed {
         error: io::Error,
         name: String,
     },
-    FormatError {
+    FormatFailed {
         error: format::error::Error,
         name: Option<String>,
     },
-    ClapError(clap::Error),
+    ClapFailed(clap::Error),
 }

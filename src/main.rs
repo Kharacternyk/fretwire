@@ -1,9 +1,11 @@
 use crate::{
     entrypoint::{
         entrypoint,
-        error::Error::{self, ClapError, FileError, ForbiddenExternalWrite, FormatError},
+        error::Error::{
+            self, ClapFailed, ExternalWriteForbidden, FileOperationFailed, FormatFailed,
+        },
     },
-    format::error::Error::{ReadError, WriteError},
+    format::error::Error::{ReadFailed, WriteFailed},
 };
 use clap::error::ErrorKind::{DisplayHelp, DisplayVersion};
 use std::process::ExitCode;
@@ -23,14 +25,14 @@ fn main() -> ExitCode {
 
 fn print(error: &Error) {
     match error {
-        ClapError(error) => {
+        ClapFailed(error) => {
             if error.print().is_err() {
                 eprintln!("Error while parsing settings");
             }
         }
-        FormatError {
+        FormatFailed {
             name,
-            error: ReadError(error),
+            error: ReadFailed(error),
         } => {
             eprint!("Error while reading from ");
             match name {
@@ -38,9 +40,9 @@ fn print(error: &Error) {
                 _ => eprint!("stdin: {error}"),
             }
         }
-        FormatError {
+        FormatFailed {
             name,
-            error: WriteError(error),
+            error: WriteFailed(error),
         } => {
             eprint!("Error while writing to ");
             match name {
@@ -48,10 +50,10 @@ fn print(error: &Error) {
                 _ => eprint!("stdout: {error}"),
             }
         }
-        FileError { name, error } => {
+        FileOperationFailed { name, error } => {
             eprintln!("Error while managing {name:?} in-place: {error}");
         }
-        ForbiddenExternalWrite { string, name } => {
+        ExternalWriteForbidden { string, name } => {
             eprintln!("External write of {string:?} to {name:?} is forbidden");
         }
     }
@@ -59,19 +61,19 @@ fn print(error: &Error) {
 
 fn exit_code(error: &Error) -> ExitCode {
     match error {
-        ClapError(error) => match error.kind() {
+        ClapFailed(error) => match error.kind() {
             DisplayHelp | DisplayVersion => ExitCode::SUCCESS,
             _ => 1.into(),
         },
-        FormatError {
-            error: ReadError(_),
+        FormatFailed {
+            error: ReadFailed(_),
             ..
         } => 2.into(),
-        FormatError {
-            error: WriteError(_),
+        FormatFailed {
+            error: WriteFailed(_),
             ..
         } => 3.into(),
-        FileError { .. } => 4.into(),
-        ForbiddenExternalWrite { .. } => 5.into(),
+        FileOperationFailed { .. } => 4.into(),
+        ExternalWriteForbidden { .. } => 5.into(),
     }
 }
