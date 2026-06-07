@@ -36,7 +36,11 @@ pub fn entrypoint() -> Result<(), Error> {
             })
         } else {
             for (name, lines) in lines {
-                format_file(&name, &settings.locale, "", lines, |_| Ok(()))?;
+                format_file(&name, &settings.locale, "", lines, |lines| {
+                    assert!(lines.is_empty());
+
+                    Ok(())
+                })?;
             }
 
             Ok(())
