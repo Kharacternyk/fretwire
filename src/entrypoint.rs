@@ -8,6 +8,10 @@ use crate::{
     format::{error::Error::WriteFailed, format},
     locale::Locale,
 };
+use atomicwrites::{
+    AllowOverwrite, AtomicFile,
+    Error::{Internal, User},
+};
 use clap::Parser;
 use core::iter::empty;
 use std::{
@@ -124,9 +128,12 @@ fn format_file(
 
     move_lines(lines)?;
 
-    file.seek(Start(0)).map_err(file_failed)?;
-    file.write_all(&buffer).map_err(write_failed)?;
-    file.set_len(buffer.len() as u64).map_err(file_failed)?;
+    AtomicFile::new(name, AllowOverwrite)
+        .write(|file| file.write_all(&buffer))
+        .map_err(|error| match error {
+            Internal(error) => file_failed(error),
+            User(error) => write_failed(error),
+        })?;
 
     Ok(())
 }
