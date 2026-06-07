@@ -1,7 +1,7 @@
 use crate::{
     entrypoint::{
         error::Error::{
-            self, ClapFailed, ExternalWriteForbidden, FileOperationFailed, FormatFailed,
+            self, ClapFailed, ExternalWriteForbidden, FileOpenFailed, FormatFailed,
         },
         run,
     },
@@ -27,14 +27,14 @@ fn print(error: &Error) {
     match error {
         ClapFailed(error) => {
             if error.print().is_err() {
-                eprintln!("Error while parsing settings");
+                eprintln!("Cannot parse settings");
             }
         }
         FormatFailed {
             name,
             error: ReadFailed(error),
         } => {
-            eprint!("Error while reading from ");
+            eprint!("Cannot read from ");
             match name {
                 Some(name) => eprintln!("{name:?}: {error}"),
                 _ => eprintln!("stdin: {error}"),
@@ -44,14 +44,14 @@ fn print(error: &Error) {
             name,
             error: WriteFailed(error),
         } => {
-            eprint!("Error while writing to ");
+            eprint!("Cannot write to ");
             match name {
                 Some(name) => eprintln!("{name:?}: {error}"),
                 _ => eprintln!("stdout: {error}"),
             }
         }
-        FileOperationFailed { name, error } => {
-            eprintln!("Error while working with {name:?}: {error}");
+        FileOpenFailed { name, error } => {
+            eprintln!("Cannot open {name:?}: {error}");
         }
         ExternalWriteForbidden { string, name } => {
             eprintln!("External write of {string:?} to {name:?} is forbidden");
@@ -73,7 +73,7 @@ fn exit_code(error: &Error) -> ExitCode {
             error: WriteFailed(_),
             ..
         } => 3.into(),
-        FileOperationFailed { .. } => 4.into(),
+        FileOpenFailed { .. } => 4.into(),
         ExternalWriteForbidden { .. } => 5.into(),
     }
 }

@@ -6,7 +6,7 @@ pub enum Error {
         string: String,
         name: String,
     },
-    FileOperationFailed {
+    FileOpenFailed {
         error: io::Error,
         name: String,
     },

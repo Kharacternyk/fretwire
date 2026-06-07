@@ -1,7 +1,5 @@
 use self::{
-    error::Error::{
-        self, ClapFailed, ExternalWriteForbidden, FileOperationFailed, FormatFailed,
-    },
+    error::Error::{self, ClapFailed, ExternalWriteForbidden, FileOpenFailed, FormatFailed},
     settings::Settings,
 };
 use crate::{
@@ -17,7 +15,7 @@ use core::iter::empty;
 use std::{
     collections::HashMap,
     fs::OpenOptions,
-    io::{self, BufReader, Seek, SeekFrom::Start, Write, stdin, stdout},
+    io::{BufReader, BufWriter, stdin, stdout},
 };
 
 pub mod error;
@@ -71,7 +69,7 @@ fn format_stdio(
         let mut source = stdin().lock();
         let mut sink = stdout().lock();
 
-        format(&mut source, &mut sink, locale, move_marker)
+        format(&mut source, &mut sink, locale, move_marker, empty())
             .map_err(|error| FormatFailed { name: None, error })
     }?;
 
@@ -82,55 +80,39 @@ fn format_file(
     name: &str,
     locale: &Locale,
     move_marker: &str,
-    append_rows: impl IntoIterator<Item = String>,
+    prepend_lines: impl IntoIterator<Item = String>,
     allow_creation: bool,
     move_lines: impl FnOnce(HashMap<String, Vec<String>>) -> Result<(), Error>,
 ) -> Result<(), Error> {
-    let file_failed = |error: io::Error| -> Error {
-        FileOperationFailed {
-            error,
-            name: name.into(),
-        }
-    };
-    let write_failed = |error: io::Error| -> Error {
-        FormatFailed {
-            error: WriteFailed(error),
-            name: Some(name.into()),
-        }
-    };
-
-    let mut buffer = Vec::new();
-    let mut file = OpenOptions::new()
+    let file = OpenOptions::new()
         .read(true)
-        .append(true)
+        // Only for checking permissions
+        .write(true)
         .create(allow_creation)
         .open(name)
-        .map_err(file_failed)?;
-
-    for row in append_rows {
-        file.write_all(row.as_bytes()).map_err(write_failed)?;
-        file.write_all(b"\n").map_err(write_failed)?;
-    }
-
-    file.seek(Start(0)).map_err(file_failed)?;
-
-    let mut source = BufReader::new(file.try_clone().map_err(file_failed)?);
-
-    let lines = format(&mut source, &mut buffer, locale, move_marker).map_err(|error| {
-        FormatFailed {
+        .map_err(|error| FileOpenFailed {
             error,
-            name: Some(name.into()),
-        }
-    })?;
-
-    move_lines(lines)?;
-
-    AtomicFile::new(name, AllowOverwrite)
-        .write(|file| file.write_all(&buffer))
-        .map_err(|error| match error {
-            Internal(error) => file_failed(error),
-            User(error) => write_failed(error),
+            name: name.into(),
         })?;
 
-    Ok(())
+    let mut source = BufReader::new(file);
+
+    AtomicFile::new(name, AllowOverwrite)
+        .write(|file| {
+            let mut sink = BufWriter::new(file);
+            let lines = format(&mut source, &mut sink, locale, move_marker, prepend_lines)
+                .map_err(|error| FormatFailed {
+                error,
+                name: Some(name.into()),
+            })?;
+
+            move_lines(lines)
+        })
+        .map_err(|error| match error {
+            Internal(error) => FormatFailed {
+                error: WriteFailed(error),
+                name: Some(name.into()),
+            },
+            User(error) => error,
+        })
 }

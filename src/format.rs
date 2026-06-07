@@ -13,9 +13,14 @@ pub fn format(
     mut sink: &mut impl Write,
     locale: &Locale,
     move_marker: &str,
+    prepend_lines: impl IntoIterator<Item = String>,
 ) -> Result<HashMap<String, Vec<String>>, Error> {
     let mut result: HashMap<String, Vec<String>> = HashMap::new();
     let mut paragraph = Paragraph::new(locale);
+
+    for line in prepend_lines {
+        write(&mut sink, paragraph.feed(line))?;
+    }
 
     for line in source.lines() {
         let mut line = line.map_err(ReadFailed)?;
@@ -60,17 +65,15 @@ mod tests {
     #[test]
     fn test_format() {
         let locale: Locale = "uk-UA".parse().unwrap();
+        let prepend_lines = vec!["".into(), "another".into(), "Перший рядок   ".into()];
         let content = vec![
-            "",
-            "Перший рядок   ",
             "second line",
+            "3 three",
             "Another  ",
             "move me \t:> destination   ",
             "delete me     :> \t",
-            "another",
             "move me as well:>destination ",
             "move me not there:>  destination2",
-            "3 three",
             "   ",
             "",
             "",
@@ -90,16 +93,16 @@ mod tests {
         let mut source = BufReader::new(&content[..]);
         let mut sink: Vec<u8> = Vec::new();
 
-        let mut result = HashMap::new();
-        result.insert(
+        let mut lines = HashMap::new();
+        lines.insert(
             "destination".into(),
             vec!["move me \t".into(), "move me as well".into()],
         );
-        result.insert("destination2".into(), vec!["move me not there".into()]);
+        lines.insert("destination2".into(), vec!["move me not there".into()]);
 
         assert_eq!(
-            format(&mut source, &mut sink, &locale, ":>").unwrap(),
-            result
+            format(&mut source, &mut sink, &locale, ":>", prepend_lines).unwrap(),
+            lines
         );
 
         assert_eq!(
