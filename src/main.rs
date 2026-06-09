@@ -14,7 +14,7 @@ mod case;
 mod entrypoint;
 mod format;
 mod locale;
-mod paragraph;
+mod state_machine;
 
 fn main() -> ExitCode {
     run()

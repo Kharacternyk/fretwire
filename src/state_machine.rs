@@ -7,7 +7,7 @@ use std::{
     iter::repeat_n,
 };
 
-pub struct Paragraph<'a> {
+pub struct StateMachine<'a> {
     locale: &'a Locale,
 
     lower_lines: Vec<String>,
@@ -19,9 +19,9 @@ pub struct Paragraph<'a> {
     trailing_count: u8,
 }
 
-impl Paragraph<'_> {
-    pub const fn new(locale: &Locale) -> Paragraph<'_> {
-        Paragraph {
+impl StateMachine<'_> {
+    pub const fn new(locale: &Locale) -> StateMachine<'_> {
+        StateMachine {
             locale,
 
             lower_lines: Vec::new(),
@@ -119,19 +119,19 @@ impl Paragraph<'_> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Cow, Locale, Paragraph};
+    use super::{Cow, Locale, StateMachine};
     use arbtest::arbtest;
 
     fn format(lines: impl IntoIterator<Item = String>) -> Vec<Cow<'static, str>> {
         let locale: Locale = "".parse().unwrap();
-        let mut paragraph = Paragraph::new(&locale);
+        let mut machine = StateMachine::new(&locale);
 
         let mut result = Vec::new();
         for line in lines {
-            result.extend(paragraph.feed(line));
+            result.extend(machine.feed(line));
         }
 
-        result.extend(paragraph.flush());
+        result.extend(machine.flush());
         result
     }
 
@@ -194,7 +194,7 @@ mod tests {
     #[test]
     fn test_loop() {
         let locale: Locale = "uk-UA".parse().unwrap();
-        let mut paragraph = Paragraph::new(&locale);
+        let mut machine = StateMachine::new(&locale);
 
         let mut result = Vec::new();
         for line in [
@@ -220,12 +220,12 @@ mod tests {
             "   ",
             "\n",
         ] {
-            result.extend(paragraph.feed(line.into()));
+            result.extend(machine.feed(line.into()));
         }
 
         assert_eq!(result.len(), 10);
 
-        result.extend(paragraph.flush());
+        result.extend(machine.flush());
 
         assert_eq!(
             result,

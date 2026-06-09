@@ -1,5 +1,5 @@
 use self::error::Error::{self, ReadFailed, WriteFailed};
-use crate::{locale::Locale, paragraph::Paragraph};
+use crate::{locale::Locale, state_machine::StateMachine};
 use std::{
     borrow::Cow,
     collections::HashMap,
@@ -16,10 +16,10 @@ pub fn format(
     prepend_lines: impl IntoIterator<Item = String>,
 ) -> Result<HashMap<String, Vec<String>>, Error> {
     let mut result: HashMap<String, Vec<String>> = HashMap::new();
-    let mut paragraph = Paragraph::new(locale);
+    let mut machine = StateMachine::new(locale);
 
     for line in prepend_lines {
-        write(&mut sink, paragraph.feed(line))?;
+        write(&mut sink, machine.feed(line))?;
     }
 
     for line in source.lines() {
@@ -35,11 +35,11 @@ pub fn format(
                 result.entry(destination).or_default().push(line);
             }
         } else {
-            write(&mut sink, paragraph.feed(line))?;
+            write(&mut sink, machine.feed(line))?;
         }
     }
 
-    write(&mut sink, paragraph.flush())?;
+    write(&mut sink, machine.flush())?;
 
     Ok(result)
 }
