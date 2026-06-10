@@ -1,5 +1,4 @@
-use super::Locale;
-use crate::case::Case;
+use crate::{Case, Locale};
 
 pub trait CasedString {
     fn first_char_case(&self, locale: &Locale) -> Option<Case>;

@@ -1,4 +1,4 @@
-use crate::case::Case;
+use crate::Case;
 use core::cmp::Ordering;
 use icu_casemap::{CaseMapper, CaseMapperBorrowed};
 use icu_collator::{Collator, CollatorBorrowed};
@@ -9,8 +9,6 @@ use icu_properties::{
 };
 use std::{str::FromStr, sync::Arc};
 use writeable::Writeable;
-
-pub mod cased_string;
 
 #[derive(Clone)]
 pub struct Locale {
@@ -46,7 +44,7 @@ impl FromStr for Locale {
 }
 
 impl Locale {
-    fn case(&self, character: char) -> Case {
+    pub fn case(&self, character: char) -> Case {
         if self.lower.contains(character) {
             Case::Lower
         } else if self.upper.contains(character) {
@@ -56,14 +54,14 @@ impl Locale {
         }
     }
 
-    fn to_title(&self, string: &str) -> String {
+    pub fn to_title(&self, string: &str) -> String {
         self.mapper
             .titlecase_segment_with_only_case_data(string, &self.icu.id, Default::default())
             .write_to_string()
             .into_owned()
     }
 
-    fn to_lower(&self, string: &str) -> String {
+    pub fn to_lower(&self, string: &str) -> String {
         self.mapper
             .lowercase(string, &self.icu.id)
             .write_to_string()

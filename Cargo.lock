@@ -188,6 +188,13 @@ dependencies = [
  "arbtest",
  "atomicwrites",
  "clap",
+ "fretwire_locale",
+]
+
+[[package]]
+name = "fretwire_locale"
+version = "0.1.0"
+dependencies = [
  "icu_casemap",
  "icu_collator",
  "icu_locale",

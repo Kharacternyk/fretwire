@@ -1,5 +1,5 @@
-use crate::locale::Locale;
 use clap::Parser;
+use fretwire_locale::Locale;
 use std::borrow::Cow::{self, Borrowed};
 
 #[derive(Parser)]

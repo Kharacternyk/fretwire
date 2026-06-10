@@ -2,16 +2,14 @@ use self::{
     error::Error::{self, ClapFailed, ExternalWriteForbidden, FileOpenFailed, FormatFailed},
     settings::Settings,
 };
-use crate::{
-    format::{error::Error::WriteFailed, format},
-    locale::Locale,
-};
+use crate::format::{error::Error::WriteFailed, format};
 use atomicwrites::{
     AllowOverwrite, AtomicFile,
     Error::{Internal, User},
 };
 use clap::Parser;
 use core::iter::empty;
+use fretwire_locale::Locale;
 use std::{
     collections::HashMap,
     fs::OpenOptions,

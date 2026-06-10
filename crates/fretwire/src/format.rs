@@ -1,5 +1,6 @@
 use self::error::Error::{self, ReadFailed, WriteFailed};
-use crate::{locale::Locale, state_machine::StateMachine};
+use crate::state_machine::StateMachine;
+use fretwire_locale::Locale;
 use std::{
     borrow::Cow,
     collections::HashMap,

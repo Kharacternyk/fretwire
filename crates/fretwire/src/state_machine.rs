@@ -1,6 +1,6 @@
-use crate::{
-    case::Case::{Lower, Neutral, Upper},
-    locale::{Locale, cased_string::CasedString},
+use fretwire_locale::{
+    Case::{Lower, Neutral, Upper},
+    CasedString, Locale,
 };
 use std::{
     borrow::Cow::{self, Borrowed, Owned},

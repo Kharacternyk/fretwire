@@ -10,10 +10,8 @@ use crate::{
 use clap::error::ErrorKind::{DisplayHelp, DisplayVersion};
 use std::process::ExitCode;
 
-mod case;
 mod entrypoint;
 mod format;
-mod locale;
 mod state_machine;
 
 fn main() -> ExitCode {
