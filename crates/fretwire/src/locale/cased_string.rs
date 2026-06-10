@@ -22,19 +22,13 @@ impl CasedString for String {
 }
 
 fn transform_first_char(string: &mut String, transform: impl FnOnce(&str) -> String) {
-    let mut indices = string.char_indices();
+    let i = string
+        .char_indices()
+        .nth(1)
+        .map(|(i, _)| i)
+        .unwrap_or(string.len());
 
-    indices.next();
-
-    if let Some((i, _)) = indices.next() {
-        let mut new_string = transform(&string[..i]);
-
-        new_string.push_str(&string[i..]);
-
-        *string = new_string;
-    } else {
-        *string = transform(string);
-    }
+    string.replace_range(..i, &transform(&string[..i]));
 }
 
 #[cfg(test)]
