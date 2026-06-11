@@ -1,0 +1,13 @@
+[package]
+name = "fretwire_format"
+version = "0.0.0"
+edition = "2024"
+
+[dependencies]
+fretwire_locale.workspace = true
+
+[dev-dependencies]
+arbtest.workspace = true
+
+[lib]
+doctest = false

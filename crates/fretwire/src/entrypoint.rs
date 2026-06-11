@@ -1,23 +1,20 @@
-use self::{
+use crate::{
     error::Error::{self, ClapFailed, ExternalWriteForbidden, FileOpenFailed, FormatFailed},
     settings::Settings,
 };
-use crate::format::{error::Error::WriteFailed, format};
 use atomicwrites::{
     AllowOverwrite, AtomicFile,
     Error::{Internal, User},
 };
 use clap::Parser;
 use core::iter::empty;
+use fretwire_format::{Error::WriteFailed, format};
 use fretwire_locale::Locale;
 use std::{
     collections::HashMap,
     fs::OpenOptions,
     io::{BufReader, BufWriter, stdin, stdout},
 };
-
-pub mod error;
-mod settings;
 
 pub fn run() -> Result<(), Error> {
     let settings = Settings::try_parse().map_err(ClapFailed)?;

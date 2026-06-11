@@ -185,15 +185,23 @@ checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
 name = "fretwire"
 version = "0.1.0"
 dependencies = [
- "arbtest",
  "atomicwrites",
  "clap",
+ "fretwire_format",
+ "fretwire_locale",
+]
+
+[[package]]
+name = "fretwire_format"
+version = "0.0.0"
+dependencies = [
+ "arbtest",
  "fretwire_locale",
 ]
 
 [[package]]
 name = "fretwire_locale"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "icu_casemap",
  "icu_collator",

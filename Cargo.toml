@@ -8,4 +8,7 @@ nursery = "warn"
 pedantic = "warn"
 
 [workspace.dependencies]
+fretwire_format = { path = "./crates/fretwire_format/" }
+fretwire_locale = { path = "./crates/fretwire_locale/" }
+
 arbtest = "0.3.2"

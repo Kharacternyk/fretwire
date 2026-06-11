@@ -1,4 +1,3 @@
-use crate::format;
 use std::io;
 
 pub enum Error {
@@ -11,7 +10,7 @@ pub enum Error {
         name: String,
     },
     FormatFailed {
-        error: format::error::Error,
+        error: fretwire_format::Error,
         name: Option<String>,
     },
     ClapFailed(clap::Error),

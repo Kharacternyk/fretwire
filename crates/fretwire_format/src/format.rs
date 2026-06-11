@@ -1,13 +1,13 @@
-use self::error::Error::{self, ReadFailed, WriteFailed};
-use crate::state_machine::StateMachine;
+use crate::{
+    Error::{self, ReadFailed, WriteFailed},
+    StateMachine,
+};
 use fretwire_locale::Locale;
 use std::{
     borrow::Cow,
     collections::HashMap,
     io::{BufRead, Write},
 };
-
-pub mod error;
 
 pub fn format(
     source: &mut impl BufRead,

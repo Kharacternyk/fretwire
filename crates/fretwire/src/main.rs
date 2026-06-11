@@ -1,18 +1,14 @@
 use crate::{
-    entrypoint::{
-        error::Error::{
-            self, ClapFailed, ExternalWriteForbidden, FileOpenFailed, FormatFailed,
-        },
-        run,
-    },
-    format::error::Error::{ReadFailed, WriteFailed},
+    entrypoint::run,
+    error::Error::{self, ClapFailed, ExternalWriteForbidden, FileOpenFailed, FormatFailed},
 };
 use clap::error::ErrorKind::{DisplayHelp, DisplayVersion};
+use fretwire_format::Error::{ReadFailed, WriteFailed};
 use std::process::ExitCode;
 
 mod entrypoint;
-mod format;
-mod state_machine;
+mod error;
+mod settings;
 
 fn main() -> ExitCode {
     run()
