@@ -1,6 +1,7 @@
 use fretwire_locale::{
-    Case::{Lower, Neutral, Upper},
-    CasedString, Locale,
+    Case::{Lower, Upper},
+    CaseRelation::{Stable, Unstable},
+    Locale,
 };
 use std::{
     borrow::Cow::{self, Borrowed, Owned},
@@ -12,7 +13,7 @@ pub struct StateMachine<'a> {
 
     lower_lines: Vec<String>,
     upper_lines: Vec<String>,
-    neutral_lines: Vec<String>,
+    stable_lines: Vec<String>,
 
     leading_count: u8,
     body_count: usize,
@@ -20,14 +21,14 @@ pub struct StateMachine<'a> {
 }
 
 impl StateMachine<'_> {
-    #[must_use] 
+    #[must_use]
     pub const fn new(locale: &Locale) -> StateMachine<'_> {
         StateMachine {
             locale,
 
             lower_lines: Vec::new(),
             upper_lines: Vec::new(),
-            neutral_lines: Vec::new(),
+            stable_lines: Vec::new(),
 
             leading_count: 0,
             body_count: 0,
@@ -45,7 +46,7 @@ impl StateMachine<'_> {
     ) -> Option<impl Iterator<Item = Cow<'static, str>>> {
         line.truncate(line.trim_end().len());
 
-        if let Some(case) = line.first_char_case(self.locale) {
+        if let Some(character) = line.chars().next() {
             let result = if self.trailing_count > 0 {
                 let result = Some(self.flush_not_empty());
 
@@ -60,10 +61,10 @@ impl StateMachine<'_> {
                 None
             };
 
-            match case {
-                Lower => self.lower_lines.push(line),
-                Upper => self.upper_lines.push(line),
-                Neutral => self.neutral_lines.push(line),
+            match self.locale.case_relation(character) {
+                Unstable(Lower) => self.lower_lines.push(line),
+                Unstable(Upper) => self.upper_lines.push(line),
+                Stable => self.stable_lines.push(line),
             }
 
             result
@@ -89,11 +90,11 @@ impl StateMachine<'_> {
     fn flush_not_empty(&mut self) -> impl Iterator<Item = Cow<'static, str>> + use<> {
         if self.upper_lines.len() >= self.lower_lines.len() {
             for line in &mut self.lower_lines {
-                line.first_char_to_upper(self.locale);
+                self.locale.change_first_char_case(line, Upper);
             }
         } else {
             for line in &mut self.upper_lines {
-                line.first_char_to_lower(self.locale);
+                self.locale.change_first_char_case(line, Lower);
             }
         }
 
@@ -102,7 +103,7 @@ impl StateMachine<'_> {
         for vector in [
             &mut self.lower_lines,
             &mut self.upper_lines,
-            &mut self.neutral_lines,
+            &mut self.stable_lines,
         ] {
             for line in vector.drain(..) {
                 result.push(Owned(line));

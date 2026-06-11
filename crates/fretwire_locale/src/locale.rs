@@ -1,4 +1,7 @@
-use crate::Case;
+use crate::{
+    Case::{self, Lower, Upper},
+    CaseRelation::{self, Stable, Unstable},
+};
 use core::cmp::Ordering;
 use icu_casemap::{CaseMapper, CaseMapperBorrowed};
 use icu_collator::{Collator, CollatorBorrowed};
@@ -44,34 +47,44 @@ impl FromStr for Locale {
 }
 
 impl Locale {
-    #[must_use] 
-    pub fn case(&self, character: char) -> Case {
+    #[must_use]
+    pub fn case_relation(&self, character: char) -> CaseRelation {
         if self.lower.contains(character) {
-            Case::Lower
+            Unstable(Lower)
         } else if self.upper.contains(character) {
-            Case::Upper
+            Unstable(Upper)
         } else {
-            Case::Neutral
+            Stable
         }
     }
 
-    #[must_use] 
-    pub fn to_title(&self, string: &str) -> String {
-        self.mapper
-            .titlecase_segment_with_only_case_data(string, &self.icu.id, Default::default())
-            .write_to_string()
-            .into_owned()
+    pub fn change_first_char_case(&self, string: &mut String, case: Case) {
+        let i = string
+            .char_indices()
+            .nth(1)
+            .map_or(string.len(), |(i, _)| i);
+
+        let transformed = match case {
+            Upper => self
+                .mapper
+                .titlecase_segment_with_only_case_data(
+                    &string[..i],
+                    &self.icu.id,
+                    Default::default(),
+                )
+                .write_to_string()
+                .into_owned(),
+            Lower => self
+                .mapper
+                .lowercase(&string[..i], &self.icu.id)
+                .write_to_string()
+                .into_owned(),
+        };
+
+        string.replace_range(..i, &transformed);
     }
 
-    #[must_use] 
-    pub fn to_lower(&self, string: &str) -> String {
-        self.mapper
-            .lowercase(string, &self.icu.id)
-            .write_to_string()
-            .into_owned()
-    }
-
-    #[must_use] 
+    #[must_use]
     pub fn compare(&self, a: &str, b: &str) -> Ordering {
         self.collator.compare(a, b)
     }
@@ -79,10 +92,7 @@ impl Locale {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        Case::{Lower, Neutral, Upper},
-        Locale,
-    };
+    use super::{Locale, Lower, Stable, Unstable, Upper};
 
     const UPPERCASE_DIGRAPH: char = '\u{01C4}';
     const TITLECASE_DIGRAPH: char = '\u{01C5}';
@@ -106,46 +116,55 @@ mod tests {
 
     #[test]
     fn test_upper() {
-        assert_eq!(locale("").case('Є'), Upper);
-        assert_eq!(locale("").case(TITLECASE_DIGRAPH), Upper);
-        assert_eq!(locale("").case(UPPERCASE_DIGRAPH), Upper);
+        let locale = locale("");
+        for character in ['Є', TITLECASE_DIGRAPH, UPPERCASE_DIGRAPH] {
+            assert_eq!(locale.case_relation(character), Unstable(Upper));
+        }
     }
 
     #[test]
     fn test_lower() {
-        assert_eq!(locale("").case('є'), Lower);
-        assert_eq!(locale("").case(LOWERCASE_DIGRAPH), Lower);
+        let locale = locale("");
+        for character in ['є', LOWERCASE_DIGRAPH] {
+            assert_eq!(locale.case_relation(character), Unstable(Lower));
+        }
     }
 
     #[test]
     fn test_neutral() {
-        assert_eq!(locale("").case('1'), Neutral);
-        assert_eq!(locale("").case('-'), Neutral);
-        assert_eq!(locale("").case('«'), Neutral);
-        assert_eq!(locale("").case('\u{1f680}' /*rocket emoji*/), Neutral);
+        let locale = locale("");
+        for character in ['1', '-', '«', '\u{1f680}' /*rocket emoji*/] {
+            assert_eq!(locale.case_relation(character), Stable);
+        }
     }
 
     #[test]
     fn test_to_upper() {
-        assert_eq!(locale("").to_title("ii"), "Ii");
-        assert_eq!(locale("").to_title("ßS"), "Sss");
-        assert_eq!(locale("tr-TR").to_title("ii"), "İi");
-        assert_eq!(
-            locale("").to_title(&LOWERCASE_DIGRAPH.to_string()),
-            TITLECASE_DIGRAPH.to_string(),
-        );
+        let titlecase_digraph = TITLECASE_DIGRAPH.to_string();
+
+        for (descriptor, mut input, output) in [
+            ("", "ii jj".into(), "Ii jj"),
+            ("", "ßS".into(), "SsS"),
+            ("tr-TR", "ii".into(), "İi"),
+            ("", LOWERCASE_DIGRAPH.to_string(), &titlecase_digraph),
+        ] {
+            locale(descriptor).change_first_char_case(&mut input, Upper);
+            assert_eq!(input, output);
+        }
     }
 
     #[test]
     fn test_to_lower() {
-        assert_eq!(locale("").to_lower("Ґрунт: А"), "ґрунт: а");
-        assert_eq!(
-            locale("").to_lower(&TITLECASE_DIGRAPH.to_string()),
-            LOWERCASE_DIGRAPH.to_string(),
-        );
-        assert_eq!(
-            locale("").to_lower(&UPPERCASE_DIGRAPH.to_string()),
-            LOWERCASE_DIGRAPH.to_string(),
-        );
+        let locale = locale("");
+        let lowercase_digraph = LOWERCASE_DIGRAPH.to_string();
+
+        for (mut input, output) in [
+            ("Ґрунт: А".into(), "ґрунт: А"),
+            (TITLECASE_DIGRAPH.to_string(), &lowercase_digraph),
+            (UPPERCASE_DIGRAPH.to_string(), &lowercase_digraph),
+        ] {
+            locale.change_first_char_case(&mut input, Lower);
+            assert_eq!(input, output);
+        }
     }
 }

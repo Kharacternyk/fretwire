@@ -1,5 +1,5 @@
-pub use self::{case::Case, cased_string::CasedString, locale::Locale};
+pub use self::{case::Case, case_relation::CaseRelation, locale::Locale};
 
 mod case;
-mod cased_string;
+mod case_relation;
 mod locale;

@@ -2,5 +2,4 @@
 pub enum Case {
     Upper,
     Lower,
-    Neutral,
 }
