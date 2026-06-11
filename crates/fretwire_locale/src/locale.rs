@@ -44,6 +44,7 @@ impl FromStr for Locale {
 }
 
 impl Locale {
+    #[must_use] 
     pub fn case(&self, character: char) -> Case {
         if self.lower.contains(character) {
             Case::Lower
@@ -54,6 +55,7 @@ impl Locale {
         }
     }
 
+    #[must_use] 
     pub fn to_title(&self, string: &str) -> String {
         self.mapper
             .titlecase_segment_with_only_case_data(string, &self.icu.id, Default::default())
@@ -61,6 +63,7 @@ impl Locale {
             .into_owned()
     }
 
+    #[must_use] 
     pub fn to_lower(&self, string: &str) -> String {
         self.mapper
             .lowercase(string, &self.icu.id)
@@ -68,6 +71,7 @@ impl Locale {
             .into_owned()
     }
 
+    #[must_use] 
     pub fn compare(&self, a: &str, b: &str) -> Ordering {
         self.collator.compare(a, b)
     }

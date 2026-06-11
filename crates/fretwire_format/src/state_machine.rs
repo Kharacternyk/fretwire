@@ -20,6 +20,7 @@ pub struct StateMachine<'a> {
 }
 
 impl StateMachine<'_> {
+    #[must_use] 
     pub const fn new(locale: &Locale) -> StateMachine<'_> {
         StateMachine {
             locale,

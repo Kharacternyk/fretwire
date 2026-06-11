@@ -24,8 +24,7 @@ fn transform_first_char(string: &mut String, transform: impl FnOnce(&str) -> Str
     let i = string
         .char_indices()
         .nth(1)
-        .map(|(i, _)| i)
-        .unwrap_or(string.len());
+        .map_or(string.len(), |(i, _)| i);
 
     string.replace_range(..i, &transform(&string[..i]));
 }
