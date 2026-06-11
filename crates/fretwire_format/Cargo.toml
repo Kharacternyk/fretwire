@@ -9,5 +9,8 @@ fretwire_locale.workspace = true
 [dev-dependencies]
 arbtest.workspace = true
 
+[lints]
+workspace = true
+
 [lib]
 doctest = false
