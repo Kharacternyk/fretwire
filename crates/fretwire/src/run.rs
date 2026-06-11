@@ -1,6 +1,6 @@
 use crate::{
-    error::Error::{self, ClapFailed, ExternalWriteForbidden, FileOpenFailed, FormatFailed},
-    settings::Settings,
+    Error::{self, ClapFailed, ExternalWriteForbidden, FileOpenFailed, FormatFailed},
+    Settings,
 };
 use atomicwrites::{
     AllowOverwrite, AtomicFile,
