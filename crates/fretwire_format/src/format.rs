@@ -68,7 +68,7 @@ mod tests {
     #[test]
     fn test_format() {
         let locale: Locale = "uk-UA".parse().unwrap();
-        let prepend_lines = vec!["".into(), "another".into(), "Перший рядок   ".into()];
+        let prepend_lines = vec![String::new(), "another".into(), "Перший рядок   ".into()];
         let content = vec![
             "second line",
             "3 three",
@@ -110,7 +110,7 @@ mod tests {
 
         assert_eq!(
             String::from_utf8(sink).unwrap(),
-            vec![
+            [
                 "3 three",
                 "Перший рядок",
                 "Another",
@@ -122,7 +122,7 @@ mod tests {
                 "є d",
                 "a X",
                 "b",
-                "",
+                ""
             ]
             .join("\n")
         );

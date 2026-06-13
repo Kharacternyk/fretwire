@@ -142,12 +142,8 @@ mod tests {
         arbtest(|u| {
             let lines: Vec<String> = u.arbitrary()?;
             let first_result = format(lines);
-            let second_result = format(
-                first_result
-                    .clone()
-                    .into_iter()
-                    .map(|line| line.into_owned()),
-            );
+            let second_result =
+                format(first_result.clone().into_iter().map(Cow::into_owned));
 
             assert_eq!(first_result, second_result);
 
@@ -169,12 +165,12 @@ mod tests {
 
                     assert!(streak <= 2);
                 } else {
-                    streak = 0
+                    streak = 0;
                 }
             }
 
-            assert!(result.first().map(|s| s.is_empty()) != Some(true));
-            assert!(result.last().map(|s| s.is_empty()) != Some(true));
+            assert!(result.first().is_none_or(|s| !s.is_empty()));
+            assert!(result.last().is_none_or(|s| !s.is_empty()));
 
             Ok(())
         });
