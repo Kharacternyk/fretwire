@@ -69,7 +69,7 @@ mod tests {
     fn test_format() {
         let locale: Locale = "uk-UA".parse().unwrap();
         let prepend_lines = vec![String::new(), "another".into(), "Перший рядок   ".into()];
-        let content = vec![
+        let content = [
             "second line",
             "3 three",
             "Another  ",
@@ -89,9 +89,8 @@ mod tests {
             "b   ",
             "   ",
             "",
-        ]
-        .join("\n")
-        .into_bytes();
+        ];
+        let content = content.join("\n").into_bytes();
 
         let mut source = BufReader::new(&content[..]);
         let mut sink: Vec<u8> = Vec::new();
@@ -108,23 +107,21 @@ mod tests {
             lines
         );
 
-        assert_eq!(
-            String::from_utf8(sink).unwrap(),
-            [
-                "3 three",
-                "Перший рядок",
-                "Another",
-                "Second line",
-                "",
-                "",
-                "x",
-                "",
-                "є d",
-                "a X",
-                "b",
-                "",
-            ]
-            .join("\n")
-        );
+        let expected = [
+            "3 three",
+            "Перший рядок",
+            "Another",
+            "Second line",
+            "",
+            "",
+            "x",
+            "",
+            "є d",
+            "a X",
+            "b",
+            "",
+        ];
+
+        assert_eq!(String::from_utf8(sink).unwrap(), expected.join("\n"));
     }
 }
