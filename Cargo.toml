@@ -3,10 +3,13 @@ resolver = "3"
 members = ["crates/*"]
 
 [workspace.lints.clippy]
-default_trait_access = { level = "allow", priority = 1 }
-missing_errors_doc = { level = "allow", priority = 1 }
 nursery = "warn"
 pedantic = "warn"
+
+default_trait_access = { level = "allow", priority = 1 }
+missing_errors_doc = { level = "allow", priority = 1 }
+
+absolute_paths = "warn"
 
 [workspace.dependencies]
 fretwire_format = { path = "./crates/fretwire_format/" }
