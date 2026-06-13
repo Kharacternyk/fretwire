@@ -1,6 +1,6 @@
 use crate::Case;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum CaseRelation {
     Stable,
     Unstable(Case),

@@ -77,7 +77,7 @@ impl StateMachine<'_> {
         }
     }
 
-    pub fn flush(&mut self) -> impl Iterator<Item = Cow<'static, str>> + use<> {
+    pub fn flush(mut self) -> impl Iterator<Item = Cow<'static, str>> + use<> {
         let result = if self.body_count > 0 {
             Some(self.flush_not_empty())
         } else {

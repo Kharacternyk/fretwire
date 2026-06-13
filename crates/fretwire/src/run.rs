@@ -14,6 +14,7 @@ use std::{
     collections::HashMap,
     fs::OpenOptions,
     io::{BufReader, BufWriter, stdin, stdout},
+    path::PathBuf,
 };
 
 pub fn run() -> Result<(), Error> {
@@ -24,12 +25,12 @@ pub fn run() -> Result<(), Error> {
             && let Some((name, strings)) = lines.iter().next()
         {
             Err(ExternalWriteForbidden {
-                name: name.clone(),
+                name: name.clone().into(),
                 string: strings[0].clone(),
             })
         } else {
             for (name, lines) in lines {
-                format_file(&name, &settings.locale, "", lines, true, |lines| {
+                format_file(&name.into(), &settings.locale, "", lines, true, |lines| {
                     assert!(lines.is_empty());
 
                     Ok(())
@@ -72,7 +73,7 @@ fn format_stdio(
 }
 
 fn format_file(
-    name: &str,
+    name: &PathBuf,
     locale: &Locale,
     move_marker: &str,
     prepend_lines: impl IntoIterator<Item = String>,

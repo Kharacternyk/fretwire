@@ -42,6 +42,8 @@ pub fn format(
 
     write(&mut sink, machine.flush())?;
 
+    sink.flush().map_err(WriteFailed)?;
+
     Ok(result)
 }
 

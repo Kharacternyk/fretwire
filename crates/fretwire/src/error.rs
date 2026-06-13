@@ -1,17 +1,17 @@
-use std::io;
+use std::{io, path::PathBuf};
 
 pub enum Error {
     ExternalWriteForbidden {
         string: String,
-        name: String,
+        name: PathBuf,
     },
     FileOpenFailed {
         error: io::Error,
-        name: String,
+        name: PathBuf,
     },
     FormatFailed {
         error: fretwire_format::Error,
-        name: Option<String>,
+        name: Option<PathBuf>,
     },
     ClapFailed(clap::Error),
 }

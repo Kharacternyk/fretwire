@@ -1,11 +1,14 @@
 use clap::Parser;
 use fretwire_locale::Locale;
-use std::borrow::Cow::{self, Borrowed};
+use std::{
+    borrow::Cow::{self, Borrowed},
+    path::PathBuf,
+};
 
 #[derive(Parser)]
 #[command(version, about)]
 pub struct Settings {
-    pub file: Option<String>,
+    pub file: Option<PathBuf>,
 
     #[arg(long, env = "FRETWIRE_LOCALE", default_value = "", value_parser = parse_locale)]
     pub locale: Locale,

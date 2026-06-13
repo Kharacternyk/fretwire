@@ -1,4 +1,5 @@
-pub use self::{error::Error, format::format, state_machine::StateMachine};
+use self::state_machine::StateMachine;
+pub use self::{error::Error, format::format};
 
 mod error;
 mod format;

@@ -26,7 +26,7 @@ fn print(error: &Error) {
         } => {
             eprint!("Cannot read from ");
             match name {
-                Some(name) => eprintln!("{name:?}: {error}"),
+                Some(name) => eprintln!("{} {error}", name.display()),
                 _ => eprintln!("stdin: {error}"),
             }
         }
@@ -36,15 +36,18 @@ fn print(error: &Error) {
         } => {
             eprint!("Cannot write to ");
             match name {
-                Some(name) => eprintln!("{name:?}: {error}"),
+                Some(name) => eprintln!("{}: {error}", name.display()),
                 _ => eprintln!("stdout: {error}"),
             }
         }
         FileOpenFailed { name, error } => {
-            eprintln!("Cannot open {name:?}: {error}");
+            eprintln!("Cannot open {}: {error}", name.display());
         }
         ExternalWriteForbidden { string, name } => {
-            eprintln!("External write of {string:?} to {name:?} is forbidden");
+            eprintln!(
+                "External write of {string:?} to {} is forbidden",
+                name.display()
+            );
         }
     }
 }
