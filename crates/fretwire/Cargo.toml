@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-atomicwrites = "0.4.4"
 clap = { version = "4.6.1", features = ["derive", "env"] }
 fretwire_format.workspace = true
 fretwire_locale.workspace = true

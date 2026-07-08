@@ -1,19 +1,19 @@
 use crate::{
-    Error::{self, ClapFailed, ExternalWriteForbidden, FileOpenFailed, FormatFailed},
-    Settings,
-};
-use atomicwrites::{
-    AllowOverwrite, AtomicFile,
-    Error::{Internal, User},
+    Error::{self, ClapFailed, ExternalWriteForbidden, FormatFailed},
+    IntoIOFailed, Settings,
 };
 use clap::Parser;
-use core::iter::empty;
-use fretwire_format::{Error::WriteFailed, format};
+use fretwire_format::format;
 use fretwire_locale::Locale;
 use std::{
     collections::HashMap,
     fs::OpenOptions,
-    io::{BufReader, BufWriter, stdin, stdout},
+    io::{
+        BufReader, BufWriter, Read, Seek,
+        SeekFrom::{End, Start},
+        Write, copy, stdin, stdout,
+    },
+    iter::empty,
     path::PathBuf,
 };
 
@@ -29,6 +29,7 @@ pub fn run() -> Result<(), Error> {
                 string: strings[0].clone(),
             })
         } else {
+            // TODO: multithreading
             for (name, lines) in lines {
                 format_file(&name.into(), &settings.locale, "", lines, true, |lines| {
                     assert!(lines.is_empty());
@@ -80,35 +81,55 @@ fn format_file(
     allow_creation: bool,
     move_lines: impl FnOnce(HashMap<String, Vec<String>>) -> Result<(), Error>,
 ) -> Result<(), Error> {
-    let file = OpenOptions::new()
+    const BACKUP_MARKER: &str = "\nFRETWIREBACKUP\n";
+
+    let mut source = OpenOptions::new()
         .read(true)
-        // Only for checking permissions
         .write(true)
         .create(allow_creation)
         .open(name)
-        .map_err(|error| FileOpenFailed {
+        .filename(name)?;
+    let mut sink = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(name)
+        .filename(name)?;
+    let position = sink.seek(End(0)).filename(name)?;
+
+    let lines = {
+        let mut buf_source = BufReader::new(&source).take(position);
+        let mut buf_sink = BufWriter::new(&sink);
+
+        buf_sink
+            .write_all(BACKUP_MARKER.as_bytes())
+            .filename(name)?;
+
+        format(
+            &mut buf_source,
+            &mut buf_sink,
+            locale,
+            move_marker,
+            prepend_lines,
+        )
+        .map_err(|error| FormatFailed {
             error,
-            name: name.into(),
-        })?;
+            name: Some(name.into()),
+        })?
+    };
 
-    let mut source = BufReader::new(file);
+    match move_lines(lines) {
+        Ok(()) => {
+            sink.seek(Start(position + (BACKUP_MARKER.len() as u64)))
+                .filename(name)?;
+            source.seek(Start(0)).filename(name)?;
 
-    AtomicFile::new(name, AllowOverwrite)
-        .write(|file| {
-            let mut sink = BufWriter::new(file);
-            let lines = format(&mut source, &mut sink, locale, move_marker, prepend_lines)
-                .map_err(|error| FormatFailed {
-                error,
-                name: Some(name.into()),
-            })?;
+            let size = copy(&mut sink, &mut source).filename(name)?;
 
-            move_lines(lines)
-        })
-        .map_err(|error| match error {
-            Internal(error) => FormatFailed {
-                error: WriteFailed(error),
-                name: Some(name.into()),
-            },
-            User(error) => error,
-        })
+            source.set_len(size).filename(name)
+        }
+        error => {
+            let _ = sink.set_len(position);
+            error
+        }
+    }
 }

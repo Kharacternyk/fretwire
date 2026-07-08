@@ -1,5 +1,5 @@
 use crate::{
-    Error::{self, ClapFailed, ExternalWriteForbidden, FileOpenFailed, FormatFailed},
+    Error::{self, ClapFailed, ExternalWriteForbidden, FormatFailed, IOFailed},
     run,
 };
 use clap::error::ErrorKind::{DisplayHelp, DisplayVersion};
@@ -40,8 +40,8 @@ fn print(error: &Error) {
                 _ => eprintln!("stdout: {error}"),
             }
         }
-        FileOpenFailed { name, error } => {
-            eprintln!("Cannot open {}: {error}", name.display());
+        IOFailed { name, error } => {
+            eprintln!("Cannot format {} in-place: {error}", name.display());
         }
         ExternalWriteForbidden { string, name } => {
             eprintln!(
@@ -66,7 +66,7 @@ fn exit_code(error: &Error) -> ExitCode {
             error: WriteFailed(_),
             ..
         } => 3.into(),
-        FileOpenFailed { .. } => 4.into(),
+        IOFailed { .. } => 4.into(),
         ExternalWriteForbidden { .. } => 5.into(),
     }
 }
