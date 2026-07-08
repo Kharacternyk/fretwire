@@ -2,19 +2,16 @@ use crate::{
     Error::{self, ClapFailed, ExternalWriteForbidden, FileOpenFailed, FormatFailed},
     Settings,
 };
-use atomicwrites::{
-    AllowOverwrite, AtomicFile,
-    Error::{Internal, User},
-};
 use clap::Parser;
-use core::iter::empty;
 use fretwire_format::{Error::WriteFailed, format};
 use fretwire_locale::Locale;
 use std::{
     collections::HashMap,
-    fs::OpenOptions,
-    io::{BufReader, BufWriter, stdin, stdout},
+    fs::{File, OpenOptions},
+    io::{self, BufReader, BufWriter, ErrorKind::NotFound, stdin, stdout},
+    iter,
     path::PathBuf,
+    process,
 };
 
 pub fn run() -> Result<(), Error> {
@@ -48,7 +45,7 @@ pub fn run() -> Result<(), Error> {
                 &name,
                 &settings.locale,
                 &settings.move_marker,
-                empty(),
+                iter::empty(),
                 false,
                 move_lines,
             )
@@ -65,11 +62,22 @@ fn format_stdio(
         let mut source = stdin().lock();
         let mut sink = stdout().lock();
 
-        format(&mut source, &mut sink, locale, move_marker, empty())
+        format(&mut source, &mut sink, locale, move_marker, iter::empty())
             .map_err(|error| FormatFailed { name: None, error })
     }?;
 
     move_lines(lines)
+}
+
+struct Sink {
+    name: OsString
+    file: File,
+}
+
+impl Drop for Sink {
+    fn drop(&mut self) {
+        let TemporaryFile(file) = self;
+    }
 }
 
 fn format_file(
@@ -80,35 +88,54 @@ fn format_file(
     allow_creation: bool,
     move_lines: impl FnOnce(HashMap<String, Vec<String>>) -> Result<(), Error>,
 ) -> Result<(), Error> {
-    let file = OpenOptions::new()
+    let source = OpenOptions::new()
         .read(true)
-        // Only for checking permissions
-        .write(true)
-        .create(allow_creation)
         .open(name)
-        .map_err(|error| FileOpenFailed {
-            error,
-            name: name.into(),
+        .map(Some)
+        .or_else(|error| match error.kind() {
+            NotFound if allow_creation => Ok(None),
+            _ => Err(FileOpenFailed {
+                error,
+                name: name.into(),
+            }),
         })?;
 
-    let mut source = BufReader::new(file);
+    let mut sink_name = name.clone().into_os_string();
+    sink_name.push(".");
+    sink_name.push(process::id().to_string());
+    sink_name.push(".fewtmp");
 
-    AtomicFile::new(name, AllowOverwrite)
-        .write(|file| {
-            let mut sink = BufWriter::new(file);
-            let lines = format(&mut source, &mut sink, locale, move_marker, prepend_lines)
-                .map_err(|error| FormatFailed {
-                error,
-                name: Some(name.into()),
-            })?;
+    let sink = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(&sink_name)
+        .map_err(|error| FileOpenFailed {
+            error,
+            name: sink_name.into(),
+        })?;
 
-            move_lines(lines)
-        })
-        .map_err(|error| match error {
-            Internal(error) => FormatFailed {
-                error: WriteFailed(error),
-                name: Some(name.into()),
-            },
-            User(error) => error,
-        })
+    let lines = if let Some(source) = source {
+        format(
+            &mut BufReader::new(source),
+            &mut BufWriter::new(sink),
+            locale,
+            move_marker,
+            prepend_lines,
+        )
+    } else {
+        format(
+            &mut BufReader::new(io::empty()),
+            &mut BufWriter::new(sink),
+            locale,
+            move_marker,
+            prepend_lines,
+        )
+    }
+    .map_err(|error| FormatFailed {
+        error,
+        name: Some(name.into()),
+    })?;
+
+    move_lines(lines)
 }
