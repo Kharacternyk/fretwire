@@ -35,6 +35,7 @@ fn main() {
         file: Some("test.few".into()),
         move_marker: Borrowed(":>"),
         allow_external_writes: false,
+        skip_disk_sync: true,
         locale: "".parse().unwrap(),
     };
 

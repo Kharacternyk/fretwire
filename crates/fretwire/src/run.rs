@@ -33,13 +33,21 @@ pub fn run_with_settings(settings: &Settings) -> Result<(), Error> {
                 string: strings[0].clone(),
             })
         } else {
-            // TODO: multithreading, locking, fsync, rayon, testing
+            // TODO: multithreading, locking
             for (name, lines) in lines {
-                format_file(&name.into(), &settings.locale, "", lines, true, |lines| {
-                    assert!(lines.is_empty());
+                format_file(
+                    &name.into(),
+                    &settings.locale,
+                    "",
+                    settings.skip_disk_sync,
+                    lines,
+                    true,
+                    |lines| {
+                        assert!(lines.is_empty());
 
-                    Ok(())
-                })?;
+                        Ok(())
+                    },
+                )?;
             }
 
             Ok(())
@@ -53,6 +61,7 @@ pub fn run_with_settings(settings: &Settings) -> Result<(), Error> {
                 name,
                 &settings.locale,
                 &settings.move_marker,
+                settings.skip_disk_sync,
                 empty(),
                 false,
                 move_lines,
@@ -81,6 +90,7 @@ fn format_file(
     name: &PathBuf,
     locale: &Locale,
     move_marker: &str,
+    skip_disk_sync: bool,
     prepend_lines: impl IntoIterator<Item = String>,
     allow_creation: bool,
     move_lines: impl FnOnce(HashMap<String, Vec<String>>) -> Result<(), Error>,
@@ -120,6 +130,10 @@ fn format_file(
             name: Some(name.into()),
         })?
     };
+
+    if !skip_disk_sync {
+        sink.sync_all().filename(name)?;
+    }
 
     match move_lines(lines) {
         Ok(()) => {

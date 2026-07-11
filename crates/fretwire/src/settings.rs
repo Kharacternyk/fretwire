@@ -18,6 +18,9 @@ pub struct Settings {
 
     #[arg(short = 'w', long)]
     pub allow_external_writes: bool,
+
+    #[arg(long)]
+    pub skip_disk_sync: bool,
 }
 
 fn parse_locale(descriptor: &str) -> Result<Locale, &'static str> {
