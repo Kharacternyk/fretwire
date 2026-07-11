@@ -1,6 +1,6 @@
 use crate::{
-    Error::{self, ReadFailed, WriteFailed},
-    StateMachine,
+    Error::{self, DeletionForbidden, ExternalWriteForbidden, ReadFailed, WriteFailed},
+    MovePolicy, StateMachine,
 };
 use fretwire_locale::Locale;
 use std::{
@@ -13,7 +13,7 @@ pub fn format(
     source: &mut impl BufRead,
     mut sink: &mut impl Write,
     locale: &Locale,
-    move_marker: &str,
+    move_policy: MovePolicy,
     prepend_lines: impl IntoIterator<Item = String>,
 ) -> Result<HashMap<String, Vec<String>>, Error> {
     let mut result: HashMap<String, Vec<String>> = HashMap::new();
@@ -24,18 +24,9 @@ pub fn format(
     }
 
     for line in source.lines() {
-        let mut line = line.map_err(ReadFailed)?;
+        let line = line.map_err(ReadFailed)?;
 
-        if !move_marker.is_empty()
-            && let Some((body, destination)) = line.split_once(move_marker)
-        {
-            let destination: String = destination.trim().into();
-
-            if !destination.is_empty() {
-                line.truncate(body.len());
-                result.entry(destination).or_default().push(line);
-            }
-        } else {
+        if let Some(line) = try_move(line, move_policy, &mut result)? {
             write(&mut sink, machine.feed(line))?;
         }
     }
@@ -45,6 +36,44 @@ pub fn format(
     sink.flush().map_err(WriteFailed)?;
 
     Ok(result)
+}
+
+fn try_move(
+    mut line: String,
+    move_policy: MovePolicy,
+    result: &mut HashMap<String, Vec<String>>,
+) -> Result<Option<String>, Error> {
+    if !move_policy.marker.is_empty()
+        && let Some((first, second)) = line.split_once(move_policy.marker)
+    {
+        let path: String = second.trim().into();
+
+        match (path.is_empty(), move_policy) {
+            (
+                true,
+                MovePolicy {
+                    allow_deletions: false,
+                    ..
+                },
+            ) => Err(DeletionForbidden { line }),
+            (
+                false,
+                MovePolicy {
+                    allow_external_writes: false,
+                    ..
+                },
+            ) => Err(ExternalWriteForbidden { line, path }),
+            (is_empty, _) => {
+                if !is_empty {
+                    line.truncate(first.len());
+                    result.entry(path).or_default().push(line);
+                }
+                Ok(None)
+            }
+        }
+    } else {
+        Ok(Some(line))
+    }
 }
 
 fn write(
@@ -62,7 +91,7 @@ fn write(
 
 #[cfg(test)]
 mod tests {
-    use super::{HashMap, Locale, format};
+    use super::{HashMap, Locale, MovePolicy, format};
     use std::io::BufReader;
 
     #[test]
@@ -103,7 +132,18 @@ mod tests {
         lines.insert("destination2".into(), vec!["move me not there".into()]);
 
         assert_eq!(
-            format(&mut source, &mut sink, &locale, ":>", prepend_lines).unwrap(),
+            format(
+                &mut source,
+                &mut sink,
+                &locale,
+                MovePolicy {
+                    marker: ":>",
+                    allow_external_writes: true,
+                    allow_deletions: true
+                },
+                prepend_lines
+            )
+            .unwrap(),
             lines
         );
 

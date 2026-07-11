@@ -16,6 +16,9 @@ pub struct Settings {
     #[arg(short, long, env = "FRETWIRE_MOVE_MARKER", default_value_t = Borrowed(":>"))]
     pub move_marker: Cow<'static, str>,
 
+    #[arg(short = 'd', long)]
+    pub allow_deletions: bool,
+
     #[arg(short = 'w', long)]
     pub allow_external_writes: bool,
 

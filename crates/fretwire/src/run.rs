@@ -1,9 +1,9 @@
 use crate::{
-    Error::{self, ClapFailed, ExternalWriteForbidden, FormatFailed},
+    Error::{self, ClapFailed, FormatFailed},
     IntoIOFailed, Settings,
 };
 use clap::Parser;
-use fretwire_format::format;
+use fretwire_format::{MovePolicy, format};
 use fretwire_locale::Locale;
 use std::{
     collections::HashMap,
@@ -24,43 +24,42 @@ pub fn run() -> Result<(), Error> {
 }
 
 pub fn run_with_settings(settings: &Settings) -> Result<(), Error> {
+    let move_policy = MovePolicy {
+        marker: &settings.move_marker,
+        allow_deletions: settings.allow_deletions,
+        allow_external_writes: settings.allow_external_writes,
+    };
     let move_lines = |lines: HashMap<String, Vec<String>>| -> Result<(), Error> {
-        if !settings.allow_external_writes
-            && let Some((name, strings)) = lines.iter().next()
-        {
-            Err(ExternalWriteForbidden {
-                name: name.clone().into(),
-                string: strings[0].clone(),
-            })
-        } else {
-            // TODO: multithreading, locking
-            for (name, lines) in lines {
-                format_file(
-                    &name.into(),
-                    &settings.locale,
-                    "",
-                    settings.skip_disk_sync,
-                    lines,
-                    true,
-                    |lines| {
-                        assert!(lines.is_empty());
+        // TODO: multithreading, locking
+        for (name, lines) in lines {
+            format_file(
+                &name.into(),
+                &settings.locale,
+                MovePolicy {
+                    marker: "",
+                    ..move_policy
+                },
+                settings.skip_disk_sync,
+                lines,
+                true,
+                |lines| {
+                    assert!(lines.is_empty());
 
-                        Ok(())
-                    },
-                )?;
-            }
-
-            Ok(())
+                    Ok(())
+                },
+            )?;
         }
+
+        Ok(())
     };
 
     settings.file.as_ref().map_or_else(
-        || format_stdio(&settings.locale, &settings.move_marker, move_lines),
+        || format_stdio(&settings.locale, move_policy, move_lines),
         |name| {
             format_file(
                 name,
                 &settings.locale,
-                &settings.move_marker,
+                move_policy,
                 settings.skip_disk_sync,
                 empty(),
                 false,
@@ -72,24 +71,24 @@ pub fn run_with_settings(settings: &Settings) -> Result<(), Error> {
 
 fn format_stdio(
     locale: &Locale,
-    move_marker: &str,
+    move_policy: MovePolicy,
     move_lines: impl FnOnce(HashMap<String, Vec<String>>) -> Result<(), Error>,
 ) -> Result<(), Error> {
     let lines = {
         let mut source = stdin().lock();
         let mut sink = stdout().lock();
 
-        format(&mut source, &mut sink, locale, move_marker, empty())
-            .map_err(|error| FormatFailed { name: None, error })
+        format(&mut source, &mut sink, locale, move_policy, empty())
+            .map_err(|error| FormatFailed { path: None, error })
     }?;
 
     move_lines(lines)
 }
 
 fn format_file(
-    name: &PathBuf,
+    path: &PathBuf,
     locale: &Locale,
-    move_marker: &str,
+    move_policy: MovePolicy,
     skip_disk_sync: bool,
     prepend_lines: impl IntoIterator<Item = String>,
     allow_creation: bool,
@@ -101,52 +100,58 @@ fn format_file(
         .read(true)
         .write(true)
         .create(allow_creation)
-        .open(name)
-        .filename(name)?;
+        .open(path)
+        .path(path)?;
     let mut sink = OpenOptions::new()
         .read(true)
         .write(true)
-        .open(name)
-        .filename(name)?;
-    let position = sink.seek(End(0)).filename(name)?;
+        .open(path)
+        .path(path)?;
+    let position = sink.seek(End(0)).path(path)?;
 
     let lines = {
         let mut buf_source = BufReader::new(&source).take(position);
         let mut buf_sink = BufWriter::new(&sink);
 
-        buf_sink
-            .write_all(PROGRESS_MARKER.as_bytes())
-            .filename(name)?;
+        buf_sink.write_all(PROGRESS_MARKER.as_bytes()).path(path)?;
 
         format(
             &mut buf_source,
             &mut buf_sink,
             locale,
-            move_marker,
+            move_policy,
             prepend_lines,
         )
-        .map_err(|error| FormatFailed {
-            error,
-            name: Some(name.into()),
+        .map_err(|error| {
+            let _ = buf_sink.into_parts();
+            let _ = source.set_len(position);
+            let _ = sink.set_len(position);
+
+            FormatFailed {
+                error,
+                path: Some(path.into()),
+            }
         })?
     };
 
     if !skip_disk_sync {
-        sink.sync_all().filename(name)?;
+        sink.sync_all().path(path)?;
     }
 
     match move_lines(lines) {
         Ok(()) => {
             sink.seek(Start(position + (PROGRESS_MARKER.len() as u64)))
-                .filename(name)?;
-            source.seek(Start(0)).filename(name)?;
+                .path(path)?;
+            source.seek(Start(0)).path(path)?;
 
-            let size = copy(&mut sink, &mut source).filename(name)?;
+            let size = copy(&mut sink, &mut source).path(path)?;
 
-            source.set_len(size).filename(name)
+            source.set_len(size).path(path)
         }
         error => {
+            let _ = source.set_len(position);
             let _ = sink.set_len(position);
+
             error
         }
     }

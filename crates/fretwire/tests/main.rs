@@ -1,4 +1,5 @@
-use fretwire::{Error::ExternalWriteForbidden, Settings, run_with_settings};
+use fretwire::{Error::FormatFailed, Settings, run_with_settings};
+use fretwire_format::Error::{DeletionForbidden, ExternalWriteForbidden};
 use std::{
     borrow::Cow::Borrowed,
     env::set_current_dir,
@@ -35,13 +36,28 @@ fn main() {
         file: Some("test.few".into()),
         move_marker: Borrowed(":>"),
         allow_external_writes: false,
+        allow_deletions: false,
         skip_disk_sync: true,
         locale: "".parse().unwrap(),
     };
 
     assert!(matches!(
         run_with_settings(&settings),
-        Err(ExternalWriteForbidden { .. }),
+        Err(FormatFailed {
+            error: DeletionForbidden { .. },
+            ..
+        }),
+    ));
+    assert_eq!(read("test.few").unwrap(), content.as_bytes());
+
+    settings.allow_deletions = true;
+
+    assert!(matches!(
+        run_with_settings(&settings),
+        Err(FormatFailed {
+            error: ExternalWriteForbidden { .. },
+            ..
+        }),
     ));
     assert_eq!(read("test.few").unwrap(), content.as_bytes());
 

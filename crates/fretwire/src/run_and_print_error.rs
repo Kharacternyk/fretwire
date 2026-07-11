@@ -1,10 +1,12 @@
 use crate::{
-    Error::{self, ClapFailed, ExternalWriteForbidden, FormatFailed, IOFailed},
+    Error::{self, ClapFailed, FormatFailed, IOFailed},
     run,
 };
 use clap::error::ErrorKind::{DisplayHelp, DisplayVersion};
-use fretwire_format::Error::{ReadFailed, WriteFailed};
-use std::process::ExitCode;
+use fretwire_format::Error::{
+    DeletionForbidden, ExternalWriteForbidden, ReadFailed, WriteFailed,
+};
+use std::{path::PathBuf, process::ExitCode};
 
 pub fn run_and_print_error() -> ExitCode {
     run()
@@ -21,34 +23,43 @@ fn print(error: &Error) {
             }
         }
         FormatFailed {
-            name,
+            path,
             error: ReadFailed(error),
         } => {
             eprint!("Cannot read from ");
-            match name {
-                Some(name) => eprintln!("{} {error}", name.display()),
-                _ => eprintln!("stdin: {error}"),
-            }
+            eprint_path(path, "stdin");
+            eprintln!(": {error}");
         }
         FormatFailed {
-            name,
+            path,
             error: WriteFailed(error),
         } => {
             eprint!("Cannot write to ");
-            match name {
-                Some(name) => eprintln!("{}: {error}", name.display()),
-                _ => eprintln!("stdout: {error}"),
-            }
+            eprint_path(path, "stdout");
+            eprintln!(": {error}");
         }
-        IOFailed { name, error } => {
-            eprintln!("Cannot format {} in-place: {error}", name.display());
+        FormatFailed {
+            error: DeletionForbidden { line },
+            ..
+        } => {
+            eprintln!("Deletion of {line:?} is forbidden");
         }
-        ExternalWriteForbidden { string, name } => {
-            eprintln!(
-                "External write of {string:?} to {} is forbidden",
-                name.display()
-            );
+        FormatFailed {
+            error: ExternalWriteForbidden { path, line },
+            ..
+        } => {
+            eprintln!("External write of {line:?} to {path} is forbidden");
         }
+        IOFailed { path, error } => {
+            eprintln!("Cannot format {} in-place: {error}", path.display());
+        }
+    }
+}
+
+fn eprint_path(path: &Option<PathBuf>, default: &str) {
+    match path {
+        Some(path) => eprint!("{}", path.display()),
+        _ => eprint!("{default}"),
     }
 }
 
@@ -67,6 +78,6 @@ fn exit_code(error: &Error) -> ExitCode {
             ..
         } => 3.into(),
         IOFailed { .. } => 4.into(),
-        ExternalWriteForbidden { .. } => 5.into(),
+        FormatFailed { .. } => 5.into(),
     }
 }
