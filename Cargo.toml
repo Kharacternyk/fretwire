@@ -8,6 +8,7 @@ pedantic = "warn"
 
 default_trait_access = { level = "allow", priority = 1 }
 missing_errors_doc = { level = "allow", priority = 1 }
+missing_panics_doc = { level = "allow", priority = 1 }
 
 absolute_paths = "warn"
 

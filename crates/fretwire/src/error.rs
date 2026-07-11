@@ -3,6 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+#[derive(Debug)]
 pub enum Error {
     ExternalWriteForbidden {
         string: String,

@@ -20,6 +20,10 @@ use std::{
 pub fn run() -> Result<(), Error> {
     let settings = Settings::try_parse().map_err(ClapFailed)?;
 
+    run_with_settings(&settings)
+}
+
+pub fn run_with_settings(settings: &Settings) -> Result<(), Error> {
     let move_lines = |lines: HashMap<String, Vec<String>>| -> Result<(), Error> {
         if !settings.allow_external_writes
             && let Some((name, strings)) = lines.iter().next()
@@ -29,7 +33,7 @@ pub fn run() -> Result<(), Error> {
                 string: strings[0].clone(),
             })
         } else {
-            // TODO: multithreading
+            // TODO: multithreading, locking, fsync, rayon, testing
             for (name, lines) in lines {
                 format_file(&name.into(), &settings.locale, "", lines, true, |lines| {
                     assert!(lines.is_empty());
@@ -42,11 +46,11 @@ pub fn run() -> Result<(), Error> {
         }
     };
 
-    settings.file.map_or_else(
+    settings.file.as_ref().map_or_else(
         || format_stdio(&settings.locale, &settings.move_marker, move_lines),
         |name| {
             format_file(
-                &name,
+                name,
                 &settings.locale,
                 &settings.move_marker,
                 empty(),
