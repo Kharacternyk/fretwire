@@ -85,7 +85,7 @@ fn format_file(
     allow_creation: bool,
     move_lines: impl FnOnce(HashMap<String, Vec<String>>) -> Result<(), Error>,
 ) -> Result<(), Error> {
-    const BACKUP_MARKER: &str = "\nFRETWIREBACKUP\n";
+    const PROGRESS_MARKER: &str = "\n\nFRETWIRE IN PROGRESS\n\n";
 
     let mut source = OpenOptions::new()
         .read(true)
@@ -105,7 +105,7 @@ fn format_file(
         let mut buf_sink = BufWriter::new(&sink);
 
         buf_sink
-            .write_all(BACKUP_MARKER.as_bytes())
+            .write_all(PROGRESS_MARKER.as_bytes())
             .filename(name)?;
 
         format(
@@ -123,7 +123,7 @@ fn format_file(
 
     match move_lines(lines) {
         Ok(()) => {
-            sink.seek(Start(position + (BACKUP_MARKER.len() as u64)))
+            sink.seek(Start(position + (PROGRESS_MARKER.len() as u64)))
                 .filename(name)?;
             source.seek(Start(0)).filename(name)?;
 
