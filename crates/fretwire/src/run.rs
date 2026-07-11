@@ -125,7 +125,6 @@ fn format_file(
         .map_err(|error| {
             let _ = buf_sink.into_parts();
             let _ = source.set_len(position);
-            let _ = sink.set_len(position);
 
             FormatFailed {
                 error,
@@ -150,7 +149,6 @@ fn format_file(
         }
         error => {
             let _ = source.set_len(position);
-            let _ = sink.set_len(position);
 
             error
         }
