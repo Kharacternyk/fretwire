@@ -133,15 +133,17 @@ fn format_file(
         })?
     };
 
-    if !skip_disk_sync {
-        sink.sync_all().path(path)?;
-    }
-
     match move_lines(lines) {
         Ok(()) => {
             sink.seek(Start(position + (PROGRESS_MARKER.len() as u64)))
                 .path(path)?;
             source.seek(Start(0)).path(path)?;
+
+            if !skip_disk_sync {
+                sink.sync_all().path(path).inspect_err(|_| {
+                    let _ = source.set_len(position);
+                })?;
+            }
 
             let size = copy(&mut sink, &mut source).path(path)?;
 
