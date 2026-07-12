@@ -30,7 +30,6 @@ pub fn run_with_settings(settings: &Settings) -> Result<(), Error> {
         allow_external_writes: settings.allow_external_writes,
     };
     let move_lines = |lines: HashMap<String, Vec<String>>| -> Result<(), Error> {
-        // TODO: multithreading, locking
         for (name, lines) in lines {
             format_file(
                 &name.into(),
