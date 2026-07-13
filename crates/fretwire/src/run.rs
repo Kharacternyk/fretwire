@@ -7,14 +7,8 @@ use fretwire_format::{MovePolicy, format};
 use fretwire_locale::Locale;
 use std::{
     collections::HashMap,
-    fs::OpenOptions,
-    io::{
-        BufReader, BufWriter, Read, Seek,
-        SeekFrom::{End, Start},
-        Write, copy, stdin, stdout,
-    },
+    io::{stdin, stdout},
     iter::empty,
-    path::PathBuf,
 };
 
 pub fn run() -> Result<(), Error> {
@@ -71,87 +65,13 @@ pub fn run_with_settings(settings: &Settings) -> Result<(), Error> {
 fn format_stdio(
     locale: &Locale,
     move_policy: MovePolicy,
-    move_lines: impl FnOnce(HashMap<String, Vec<String>>) -> Result<(), Error>,
-) -> Result<(), Error> {
-    let lines = {
-        let mut source = stdin().lock();
-        let mut sink = stdout().lock();
-
-        format(&mut source, &mut sink, locale, move_policy, empty())
-            .map_err(|error| FormatFailed { path: None, error })
-    }?;
-
-    move_lines(lines)
-}
-
-fn format_file(
-    path: &PathBuf,
-    locale: &Locale,
-    move_policy: MovePolicy,
-    skip_disk_sync: bool,
-    prepend_lines: impl IntoIterator<Item = String>,
-    allow_creation: bool,
-    move_lines: impl FnOnce(HashMap<String, Vec<String>>) -> Result<(), Error>,
-) -> Result<(), Error> {
-    const PROGRESS_MARKER: &str = "\n\nFRETWIRE IN PROGRESS\n\n";
-
-    let mut source = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .create(allow_creation)
-        .open(path)
-        .path(path)?;
-    let mut sink = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .open(path)
-        .path(path)?;
-    let position = sink.seek(End(0)).path(path)?;
-
-    let lines = {
-        let mut buf_source = BufReader::new(&source).take(position);
-        let mut buf_sink = BufWriter::new(&sink);
-
-        buf_sink.write_all(PROGRESS_MARKER.as_bytes()).path(path)?;
-
-        format(
-            &mut buf_source,
-            &mut buf_sink,
-            locale,
-            move_policy,
-            prepend_lines,
-        )
-        .map_err(|error| {
-            let _ = buf_sink.into_parts();
-            let _ = source.set_len(position);
-
-            FormatFailed {
-                error,
-                path: Some(path.into()),
-            }
-        })?
-    };
-
-    match move_lines(lines) {
-        Ok(()) => {
-            sink.seek(Start(position + (PROGRESS_MARKER.len() as u64)))
-                .path(path)?;
-            source.seek(Start(0)).path(path)?;
-
-            if !skip_disk_sync {
-                sink.sync_all().path(path).inspect_err(|_| {
-                    let _ = source.set_len(position);
-                })?;
-            }
-
-            let size = copy(&mut sink, &mut source).path(path)?;
-
-            source.set_len(size).path(path)
-        }
-        error => {
-            let _ = source.set_len(position);
-
-            error
-        }
-    }
+) -> Result<HashMap<String, Vec<String>>, Error> {
+    format(
+        &mut stdin().lock(),
+        &mut stdout().lock(),
+        locale,
+        move_policy,
+        empty(),
+    )
+    .map_err(|error| FormatFailed { path: None, error })
 }
