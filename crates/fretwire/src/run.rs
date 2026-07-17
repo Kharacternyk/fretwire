@@ -1,6 +1,6 @@
 use crate::{
     Error::{self, ClapFailed, FormatFailed},
-    IntoIOFailed, Settings,
+    FormattedFile, IntoIOFailed, Settings,
 };
 use clap::Parser;
 use fretwire_format::{MovePolicy, format};
@@ -46,7 +46,11 @@ pub fn run_with_settings(settings: &Settings) -> Result<(), Error> {
         Ok(())
     };
 
-    settings.file.as_ref().map_or_else(
+    if let Some(path) = settings.file {
+        let formatted_file = FormattedFile::try_new(
+    }
+
+    let lines_to_move = settings.file.as_ref().map_or_else(
         || format_stdio(&settings.locale, move_policy, move_lines),
         |name| {
             format_file(
@@ -59,7 +63,7 @@ pub fn run_with_settings(settings: &Settings) -> Result<(), Error> {
                 move_lines,
             )
         },
-    )
+    );
 }
 
 fn format_stdio(

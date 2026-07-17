@@ -17,7 +17,7 @@ use std::{
 
 const PROGRESS_MARKER: &str = "\n\nFRETWIRE IN PROGRESS\n\n";
 
-pub struct FormattedFile {
+pub struct FormatInPlace {
     original_length: u64,
     source: File,
     sink: File,
@@ -89,7 +89,7 @@ impl FormattedFile {
 
         if !self.skip_disk_sync {
             self.sink.sync_all().inspect_err(|_| {
-                self.rollback();
+                let _ = self.source.set_len(self.original_length);
             })?;
         }
 
@@ -98,7 +98,7 @@ impl FormattedFile {
         self.source.set_len(size)
     }
 
-    pub fn rollback(&mut self) -> Result<(), io::Error> {
+    pub fn rollback(self) -> Result<(), io::Error> {
         self.source.set_len(self.original_length)
     }
 }
