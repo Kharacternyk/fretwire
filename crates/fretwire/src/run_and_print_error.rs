@@ -51,7 +51,11 @@ fn print(error: &Error) {
             eprintln!("External write of {line:?} to {path} is forbidden");
         }
         IOFailed { path, error } => {
-            eprintln!("Cannot format {} in-place: {error}", path.display());
+            eprint!("Cannot format {} in-place", path.display());
+
+            if let Some(error) = error {
+                eprintln!(": {error}");
+            }
         }
     }
 }

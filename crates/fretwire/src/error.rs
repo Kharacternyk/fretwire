@@ -1,13 +1,10 @@
-use std::{
-    io,
-    path::{Path, PathBuf},
-};
+use std::{io, path::PathBuf};
 
 #[derive(Debug)]
 pub enum Error {
     ClapFailed(clap::Error),
     IOFailed {
-        error: io::Error,
+        error: Option<io::Error>,
         path: PathBuf,
     },
     FormatFailed {

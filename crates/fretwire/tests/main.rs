@@ -33,7 +33,7 @@ fn main() {
     write("test.few", &content).unwrap();
 
     let mut settings = Settings {
-        file: Some("test.few".into()),
+        path: Some("test.few".into()),
         move_marker: Borrowed(":>"),
         allow_external_writes: false,
         allow_deletions: false,

@@ -1,33 +1,29 @@
-use std::{
-    io,
-    path::{Path, PathBuf},
-};
+use crate::Error;
+use std::{io, path::Path};
 
-#[derive(Debug)]
-pub enum Error {
-    IOFailed {
-        error: io::Error,
-        path: PathBuf,
-    },
-    FormatFailed {
-        error: fretwire_format::Error,
-        path: Option<PathBuf>,
-    },
-    ClapFailed(clap::Error),
-}
-
-pub trait IntoIOFailed<T> {
+pub trait IntoIOFailed {
     type Result;
 
     fn path(self, path: &Path) -> Self::Result;
 }
 
-impl<T> IntoIOFailed<T> for Result<T, io::Error> {
+impl<T> IntoIOFailed for Option<T> {
+    type Result = Result<T, Error>;
+
+    fn path(self, path: &Path) -> Self::Result {
+        self.ok_or_else(|| Error::IOFailed {
+            error: None,
+            path: path.into(),
+        })
+    }
+}
+
+impl<T> IntoIOFailed for Result<T, io::Error> {
     type Result = Result<T, Error>;
 
     fn path(self, path: &Path) -> Self::Result {
         self.map_err(|error| Error::IOFailed {
-            error,
+            error: Some(error),
             path: path.into(),
         })
     }

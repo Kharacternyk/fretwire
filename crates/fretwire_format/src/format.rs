@@ -7,6 +7,7 @@ use std::{
     borrow::Cow,
     collections::HashMap,
     io::{BufRead, Write},
+    path::PathBuf,
 };
 
 pub fn format(
@@ -15,8 +16,8 @@ pub fn format(
     locale: &Locale,
     move_policy: MovePolicy,
     prepend_lines: impl IntoIterator<Item = String>,
-) -> Result<HashMap<String, Vec<String>>, Error> {
-    let mut result: HashMap<String, Vec<String>> = HashMap::new();
+) -> Result<HashMap<PathBuf, Vec<String>>, Error> {
+    let mut result: HashMap<PathBuf, Vec<String>> = HashMap::new();
     let mut machine = StateMachine::new(locale);
 
     for line in prepend_lines {
@@ -41,7 +42,7 @@ pub fn format(
 fn try_move(
     mut line: String,
     move_policy: MovePolicy,
-    result: &mut HashMap<String, Vec<String>>,
+    result: &mut HashMap<PathBuf, Vec<String>>,
 ) -> Result<Option<String>, Error> {
     if !move_policy.marker.is_empty()
         && let Some((first, second)) = line.split_once(move_policy.marker)
@@ -66,7 +67,7 @@ fn try_move(
             (is_empty, _) => {
                 if !is_empty {
                     line.truncate(first.len());
-                    result.entry(path).or_default().push(line);
+                    result.entry(path.into()).or_default().push(line);
                 }
                 Ok(None)
             }
