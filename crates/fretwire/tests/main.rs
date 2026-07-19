@@ -3,7 +3,7 @@ use fretwire_format::Error::{DeletionForbidden, ExternalWriteForbidden};
 use std::{
     borrow::Cow::Borrowed,
     env::set_current_dir,
-    fs::{read, write},
+    fs::{read, remove_file, write},
 };
 
 #[test]
@@ -31,6 +31,7 @@ fn main() {
     let content = content.join("\n");
 
     write("test.few", &content).unwrap();
+    remove_file("moved.few").unwrap();
 
     let mut settings = Settings {
         path: Some("test.few".into()),

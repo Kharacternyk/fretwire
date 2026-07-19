@@ -5,7 +5,7 @@ use crate::{
 use core::cmp::max;
 use fretwire_format::{MovePolicy, format};
 use fretwire_locale::Locale;
-use positioned_io::{Size, SizeCursor};
+use positioned_io::{Size, SizeCursor, WriteAt};
 use std::{
     collections::HashMap,
     fs::{File, OpenOptions, TryLockError},
@@ -42,7 +42,7 @@ impl FormatInPlace {
                 error: Some(error),
                 path: path.into(),
             },
-            _ => LockFailed(path.into()),
+            TryLockError::WouldBlock => LockFailed(path.into()),
         })?;
 
         let original_size = file.size().path(path)?.path(path)?;
@@ -87,9 +87,9 @@ impl FormatInPlace {
                 Err(error)
             }
             Ok(file) => {
-                let mut source = BufReader::new(
-                    (&self.file).take(self.stage_one_size - self.original_size),
-                );
+                let mut source = BufReader::new((&self.file).take(
+                    self.stage_one_size - self.original_size - STAGE_TWO_MARKER.len() as u64,
+                ));
                 let mut sink = BufWriter::new(SizeCursor::new(file));
                 let size = copy(&mut source, &mut sink)?;
 
@@ -101,13 +101,15 @@ impl FormatInPlace {
     }
 
     fn clone_for_stage_two(&mut self, skip_disk_sync: bool) -> Result<File, io::Error> {
-        self.file.write_all(STAGE_TWO_MARKER.as_bytes())?;
+        self.file
+            .write_all_at(self.stage_one_size, STAGE_TWO_MARKER.as_bytes())?;
 
         if !skip_disk_sync {
             self.file.sync_all()?;
         }
 
-        self.file.seek(Start(self.original_size))?;
+        self.file
+            .seek(Start(self.original_size + STAGE_ONE_MARKER.len() as u64))?;
         self.file.try_clone()
     }
 
