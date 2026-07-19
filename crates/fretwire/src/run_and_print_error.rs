@@ -58,6 +58,8 @@ fn print(error: &Error) {
 
             if let Some(error) = error {
                 eprintln!(": {error}");
+            } else {
+                eprintln!();
             }
         }
     }
