@@ -116,7 +116,7 @@ impl FormatInPlace {
             let size = copy(&mut source, &mut sink)?;
 
             drop(source);
-            drop(sink);
+            sink.into_inner()?;
 
             match file.try_into_inner() {
                 Ok(file) => {

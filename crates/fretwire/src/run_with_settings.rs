@@ -31,7 +31,17 @@ pub fn run_with_settings(settings: &Settings) -> Result<(), Error> {
     let mut paths = Vec::new();
 
     for (path, lines) in lines_to_move {
-        match FormatInPlace::try_new(&path, &settings.locale, move_policy, lines, true) {
+        match FormatInPlace::try_new(
+            &path,
+            &settings.locale,
+            MovePolicy {
+                marker: "",
+                allow_deletions: false,
+                allow_external_writes: false,
+            },
+            lines,
+            true,
+        ) {
             Ok((format, lines_to_move)) => {
                 assert!(lines_to_move.is_empty());
 
