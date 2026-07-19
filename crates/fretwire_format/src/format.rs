@@ -3,10 +3,12 @@ use crate::{
     MovePolicy, StateMachine,
 };
 use fretwire_locale::Locale;
+use path_clean::clean;
 use std::{
     borrow::Cow,
     collections::HashMap,
     io::{BufRead, Write},
+    path::PathBuf,
 };
 
 pub fn format(
@@ -15,33 +17,34 @@ pub fn format(
     locale: &Locale,
     move_policy: MovePolicy,
     prepend_lines: impl IntoIterator<Item = String>,
-) -> Result<HashMap<String, Vec<String>>, Error> {
-    let mut result: HashMap<String, Vec<String>> = HashMap::new();
+) -> Result<(u64, HashMap<PathBuf, Vec<String>>), Error> {
+    let mut size = 0;
+    let mut lines_to_move: HashMap<PathBuf, Vec<String>> = HashMap::new();
     let mut machine = StateMachine::new(locale);
 
     for line in prepend_lines {
-        write(&mut sink, machine.feed(line))?;
+        write(&mut sink, machine.feed(line), &mut size)?;
     }
 
     for line in source.lines() {
         let line = line.map_err(ReadFailed)?;
 
-        if let Some(line) = try_move(line, move_policy, &mut result)? {
-            write(&mut sink, machine.feed(line))?;
+        if let Some(line) = try_move(line, move_policy, &mut lines_to_move)? {
+            write(&mut sink, machine.feed(line), &mut size)?;
         }
     }
 
-    write(&mut sink, machine.flush())?;
+    write(&mut sink, machine.flush(), &mut size)?;
 
     sink.flush().map_err(WriteFailed)?;
 
-    Ok(result)
+    Ok((size, lines_to_move))
 }
 
 fn try_move(
     mut line: String,
     move_policy: MovePolicy,
-    result: &mut HashMap<String, Vec<String>>,
+    result: &mut HashMap<PathBuf, Vec<String>>,
 ) -> Result<Option<String>, Error> {
     if !move_policy.marker.is_empty()
         && let Some((first, second)) = line.split_once(move_policy.marker)
@@ -66,7 +69,7 @@ fn try_move(
             (is_empty, _) => {
                 if !is_empty {
                     line.truncate(first.len());
-                    result.entry(path).or_default().push(line);
+                    result.entry(clean(path)).or_default().push(line);
                 }
                 Ok(None)
             }
@@ -79,10 +82,12 @@ fn try_move(
 fn write(
     stdout: &mut impl Write,
     lines: impl IntoIterator<Item = Cow<'static, str>>,
+    size: &mut u64,
 ) -> Result<(), Error> {
     for line in lines {
         for chunk in [line.as_bytes(), b"\n"] {
             stdout.write_all(chunk).map_err(WriteFailed)?;
+            *size += chunk.len() as u64;
         }
     }
 
@@ -104,8 +109,8 @@ mod tests {
             "Another  ",
             "move me \t:> destination   ",
             "delete me     :> \t",
-            "move me as well:>destination ",
-            "move me not there:>  destination2",
+            "move me as well:>./destination ",
+            "move me not there:>  .././../destination2",
             "   ",
             "",
             "",
@@ -129,7 +134,10 @@ mod tests {
             "destination".into(),
             vec!["move me \t".into(), "move me as well".into()],
         );
-        lines.insert("destination2".into(), vec!["move me not there".into()]);
+        lines.insert(
+            "../../destination2".into(),
+            vec!["move me not there".into()],
+        );
 
         assert_eq!(
             format(
@@ -143,7 +151,8 @@ mod tests {
                 },
                 prepend_lines
             )
-            .unwrap(),
+            .unwrap()
+            .1,
             lines
         );
 

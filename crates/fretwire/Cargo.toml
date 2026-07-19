@@ -7,6 +7,7 @@ edition = "2024"
 clap = { version = "4.6.1", features = ["derive", "env"] }
 fretwire_format.workspace = true
 fretwire_locale.workspace = true
+positioned-io = { version = "0.3.5", default-features = false }
 
 [lints]
 workspace = true

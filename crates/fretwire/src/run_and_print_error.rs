@@ -1,5 +1,5 @@
 use crate::{
-    Error::{self, ClapFailed, FormatFailed, IOFailed},
+    Error::{self, ClapFailed, FormatFailed, IOFailed, LockFailed},
     run,
 };
 use clap::error::ErrorKind::{DisplayHelp, DisplayVersion};
@@ -21,6 +21,9 @@ fn print(error: &Error) {
             if error.print().is_err() {
                 eprintln!("Cannot parse settings");
             }
+        }
+        LockFailed(path) => {
+            eprintln!("{} is already locked", path.display());
         }
         FormatFailed {
             path,
@@ -51,7 +54,11 @@ fn print(error: &Error) {
             eprintln!("External write of {line:?} to {path} is forbidden");
         }
         IOFailed { path, error } => {
-            eprintln!("Cannot format {} in-place: {error}", path.display());
+            eprint!("Cannot format {} in-place", path.display());
+
+            if let Some(error) = error {
+                eprintln!(": {error}");
+            }
         }
     }
 }
@@ -79,5 +86,6 @@ fn exit_code(error: &Error) -> ExitCode {
         } => 3.into(),
         IOFailed { .. } => 4.into(),
         FormatFailed { .. } => 5.into(),
+        LockFailed(_) => 6.into(),
     }
 }

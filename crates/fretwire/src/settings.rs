@@ -8,7 +8,7 @@ use std::{
 #[derive(Parser)]
 #[command(version, about)]
 pub struct Settings {
-    pub file: Option<PathBuf>,
+    pub path: Option<PathBuf>,
 
     #[arg(long, env = "FRETWIRE_LOCALE", default_value = "", value_parser = parse_locale)]
     pub locale: Locale,
