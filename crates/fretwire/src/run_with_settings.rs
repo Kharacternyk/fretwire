@@ -46,32 +46,17 @@ pub fn run_with_settings(settings: &Settings) -> Result<(), Error> {
         }
     }
 
-    if result.is_err() {
-        for format in formats {
+    for (i, format) in formats.into_iter().enumerate() {
+        let path = match (i, &settings.path) {
+            (0, Some(path)) => path,
+            (_, Some(_)) => &paths[i - 1],
+            _ => &paths[i],
+        };
+
+        if result.is_err() {
             let _ = format.rollback();
-        }
-    } else {
-        let mut commited = Vec::new();
-
-        for (i, format) in formats.into_iter().enumerate() {
-            let path = match (i, &settings.path) {
-                (0, Some(path)) => path,
-                (_, Some(_)) => &paths[i - 1],
-                _ => &paths[i],
-            };
-
-            match format.commit(settings.skip_disk_sync).path(path) {
-                Ok(commited_item) => commited.push(commited_item),
-                Err(error) => {
-                    result = Err(error);
-
-                    for format in commited {
-                        let _ = format.rollback();
-                    }
-
-                    break;
-                }
-            }
+        } else if let error @ Err(_) = format.commit(settings.skip_disk_sync).path(path) {
+            result = error;
         }
     }
 
@@ -90,4 +75,5 @@ fn format_stdio(
         empty(),
     )
     .map_err(|error| FormatFailed { path: None, error })
+    .map(|(_, lines_to_move)| lines_to_move)
 }

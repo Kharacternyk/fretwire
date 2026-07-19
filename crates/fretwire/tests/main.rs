@@ -1,9 +1,12 @@
-use fretwire::{Error::FormatFailed, Settings, run_with_settings};
+use fretwire::{
+    Error::{FormatFailed, LockFailed},
+    Settings, run_with_settings,
+};
 use fretwire_format::Error::{DeletionForbidden, ExternalWriteForbidden};
 use std::{
     borrow::Cow::Borrowed,
     env::set_current_dir,
-    fs::{read, remove_file, write},
+    fs::{File, read, write},
 };
 
 #[test]
@@ -31,7 +34,6 @@ fn main() {
     let content = content.join("\n");
 
     write("test.few", &content).unwrap();
-    remove_file("moved.few").unwrap();
 
     let mut settings = Settings {
         path: Some("test.few".into()),
@@ -63,6 +65,15 @@ fn main() {
     assert_eq!(read("test.few").unwrap(), content.as_bytes());
 
     settings.allow_external_writes = true;
+
+    let moved_file = File::create("moved.few").unwrap();
+
+    moved_file.try_lock().unwrap();
+
+    assert!(matches!(run_with_settings(&settings), Err(LockFailed(_))));
+    assert_eq!(read("test.few").unwrap(), content.as_bytes());
+
+    drop(moved_file);
 
     assert!(run_with_settings(&settings).is_ok());
 

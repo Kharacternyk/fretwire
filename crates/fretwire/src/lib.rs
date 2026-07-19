@@ -1,8 +1,8 @@
 pub use self::{
-    error::Error, format_in_place::FormatInPlace, into_io_failed::IntoIOFailed, run::run,
-    run_and_print_error::run_and_print_error, run_with_settings::run_with_settings,
-    settings::Settings,
+    error::Error, run::run, run_and_print_error::run_and_print_error,
+    run_with_settings::run_with_settings, settings::Settings,
 };
+use self::{format_in_place::FormatInPlace, into_io_failed::IntoIOFailed};
 
 mod error;
 mod format_in_place;
