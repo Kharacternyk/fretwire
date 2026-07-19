@@ -1,4 +1,7 @@
-default: lint test
+default: sort lint test
+
+sort:
+    cargo sort --workspace
 
 lint:
     cargo clippy --all-targets

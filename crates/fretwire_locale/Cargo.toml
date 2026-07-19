@@ -3,6 +3,9 @@ name = "fretwire_locale"
 version = "0.0.0"
 edition = "2024"
 
+[lib]
+doctest = false
+
 [dependencies]
 icu_casemap = "2.2.0"
 icu_collator = "2.2.0"
@@ -12,6 +15,3 @@ writeable = "0.6.3"
 
 [lints]
 workspace = true
-
-[lib]
-doctest = false
