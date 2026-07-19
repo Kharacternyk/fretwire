@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 fretwire_locale.workspace = true
+path-clean = "1.0.1"
 
 [dev-dependencies]
 arbtest.workspace = true

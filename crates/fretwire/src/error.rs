@@ -3,6 +3,7 @@ use std::{io, path::PathBuf};
 #[derive(Debug)]
 pub enum Error {
     ClapFailed(clap::Error),
+    LockFailed(PathBuf),
     IOFailed {
         error: Option<io::Error>,
         path: PathBuf,

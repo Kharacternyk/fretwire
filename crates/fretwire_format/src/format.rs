@@ -3,6 +3,7 @@ use crate::{
     MovePolicy, StateMachine,
 };
 use fretwire_locale::Locale;
+use path_clean::clean;
 use std::{
     borrow::Cow,
     collections::HashMap,
@@ -67,7 +68,7 @@ fn try_move(
             (is_empty, _) => {
                 if !is_empty {
                     line.truncate(first.len());
-                    result.entry(path.into()).or_default().push(line);
+                    result.entry(clean(path)).or_default().push(line);
                 }
                 Ok(None)
             }
@@ -105,8 +106,8 @@ mod tests {
             "Another  ",
             "move me \t:> destination   ",
             "delete me     :> \t",
-            "move me as well:>destination ",
-            "move me not there:>  destination2",
+            "move me as well:>./destination ",
+            "move me not there:>  .././../destination2",
             "   ",
             "",
             "",
@@ -130,7 +131,10 @@ mod tests {
             "destination".into(),
             vec!["move me \t".into(), "move me as well".into()],
         );
-        lines.insert("destination2".into(), vec!["move me not there".into()]);
+        lines.insert(
+            "../../destination2".into(),
+            vec!["move me not there".into()],
+        );
 
         assert_eq!(
             format(

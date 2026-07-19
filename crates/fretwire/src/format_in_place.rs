@@ -1,5 +1,5 @@
 use crate::{
-    Error::{self, FormatFailed},
+    Error::{self, FormatFailed, IOFailed, LockFailed},
     IntoIOFailed,
 };
 use core::cmp::max;
@@ -8,7 +8,7 @@ use fretwire_locale::Locale;
 use positioned_io::{Size, SizeCursor};
 use std::{
     collections::HashMap,
-    fs::{File, OpenOptions},
+    fs::{File, OpenOptions, TryLockError},
     io::{self, BufReader, BufWriter, Read, Seek, SeekFrom::Start, Write, copy},
     path::PathBuf,
 };
@@ -37,7 +37,13 @@ impl FormatInPlace {
             .open(path)
             .path(path)?;
 
-        file.lock().path(path)?;
+        file.try_lock().map_err(|error| match error {
+            TryLockError::Error(error) => IOFailed {
+                error: Some(error),
+                path: path.into(),
+            },
+            _ => LockFailed(path.into()),
+        })?;
 
         let original_size = file.size().path(path)?.path(path)?;
         let sink_capacity = max(1 << 13, STAGE_ONE_MARKER.len() * 2);
