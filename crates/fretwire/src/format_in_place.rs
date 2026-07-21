@@ -135,7 +135,7 @@ impl FormatInPlace {
         )?;
 
         if !skip_disk_sync {
-            self.file.sync_all()?;
+            self.file.sync_data()?;
         }
 
         Ok(())
