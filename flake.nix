@@ -13,10 +13,13 @@
       {
         packages = {
           default = naersk'.buildPackage {
+            name = "fretwire";
+            version = "1.0.0-rc";
             src = ./.;
           };
           vim = pkgs.vimUtils.buildVimPlugin {
-            name = "fretwire";
+            pname = "fretwire";
+            version = "1.0.0-rc";
             src = ./vim;
           };
         };
