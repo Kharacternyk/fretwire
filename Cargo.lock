@@ -126,7 +126,7 @@ dependencies = [
 
 [[package]]
 name = "fretwire"
-version = "0.1.0"
+version = "1.0.0-rc"
 dependencies = [
  "clap",
  "fretwire_format",
@@ -136,7 +136,7 @@ dependencies = [
 
 [[package]]
 name = "fretwire_format"
-version = "0.0.0"
+version = "1.0.0-rc"
 dependencies = [
  "arbtest",
  "fretwire_locale",
@@ -145,7 +145,7 @@ dependencies = [
 
 [[package]]
 name = "fretwire_locale"
-version = "0.0.0"
+version = "1.0.0-rc"
 dependencies = [
  "icu_casemap",
  "icu_collator",

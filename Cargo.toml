@@ -2,6 +2,10 @@
 resolver = "3"
 members = ["crates/*"]
 
+[workspace.package]
+version = "1.0.0-rc"
+edition = "2024"
+
 [workspace.lints.clippy]
 nursery = "warn"
 pedantic = "warn"
