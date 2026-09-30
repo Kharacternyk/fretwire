@@ -18,7 +18,6 @@ ref_option = { level = "allow", priority = 1 }
 absolute_paths = "warn"
 
 [workspace.dependencies]
-
 arbtest = "0.3.2"
 fretwire_format = { path = "./crates/fretwire_format/" }
 fretwire_locale = { path = "./crates/fretwire_locale/" }
