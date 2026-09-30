@@ -27,6 +27,7 @@ impl FormatInPlace {
         path: &PathBuf,
         locale: &Locale,
         move_policy: MovePolicy,
+        one_paragraph: bool,
         prepend_lines: impl IntoIterator<Item = String>,
         allow_creation: bool,
     ) -> Result<(Self, HashMap<PathBuf, Vec<String>>), Error> {
@@ -61,8 +62,14 @@ impl FormatInPlace {
             "BufWriter should not do any IO while there is free space in the buffer",
         );
 
-        let format_result =
-            format(&mut source, &mut sink, locale, move_policy, prepend_lines);
+        let format_result = format(
+            &mut source,
+            &mut sink,
+            locale,
+            move_policy,
+            one_paragraph,
+            prepend_lines,
+        );
 
         drop(source);
 

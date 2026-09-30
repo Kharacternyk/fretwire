@@ -16,11 +16,12 @@ pub fn format(
     mut sink: &mut impl Write,
     locale: &Locale,
     move_policy: MovePolicy,
+    one_paragraph: bool,
     prepend_lines: impl IntoIterator<Item = String>,
 ) -> Result<(u64, HashMap<PathBuf, Vec<String>>), Error> {
     let mut size = 0;
     let mut lines_to_move: HashMap<PathBuf, Vec<String>> = HashMap::new();
-    let mut machine = StateMachine::new(locale);
+    let mut machine = StateMachine::new(locale, one_paragraph);
 
     for line in prepend_lines {
         write(&mut sink, machine.feed(line), &mut size)?;
@@ -149,6 +150,7 @@ mod tests {
                     allow_external_writes: true,
                     allow_deletions: true
                 },
+                false,
                 prepend_lines
             )
             .unwrap()

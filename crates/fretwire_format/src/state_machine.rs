@@ -10,6 +10,7 @@ use std::{
 
 pub struct StateMachine<'a> {
     locale: &'a Locale,
+    one_paragraph: bool,
 
     lower_lines: Vec<String>,
     upper_lines: Vec<String>,
@@ -22,9 +23,10 @@ pub struct StateMachine<'a> {
 
 impl StateMachine<'_> {
     #[must_use]
-    pub const fn new(locale: &Locale) -> StateMachine<'_> {
+    pub const fn new(locale: &Locale, one_paragraph: bool) -> StateMachine<'_> {
         StateMachine {
             locale,
+            one_paragraph,
 
             lower_lines: Vec::new(),
             upper_lines: Vec::new(),
@@ -69,7 +71,7 @@ impl StateMachine<'_> {
 
             result
         } else {
-            if self.body_count > 0 && self.trailing_count < 2 {
+            if self.body_count > 0 && self.trailing_count < 2 && !self.one_paragraph {
                 self.trailing_count += 1;
             }
 
@@ -124,9 +126,12 @@ mod tests {
     use super::{Cow, Locale, StateMachine};
     use arbtest::arbtest;
 
-    fn format(lines: impl IntoIterator<Item = String>) -> Vec<Cow<'static, str>> {
+    fn format(
+        lines: impl IntoIterator<Item = String>,
+        one_paragraph: bool,
+    ) -> Vec<Cow<'static, str>> {
         let locale: Locale = "".parse().unwrap();
-        let mut machine = StateMachine::new(&locale);
+        let mut machine = StateMachine::new(&locale, one_paragraph);
 
         let mut result = Vec::new();
         for line in lines {
@@ -141,9 +146,12 @@ mod tests {
     fn test_idempotence() {
         arbtest(|u| {
             let lines: Vec<String> = u.arbitrary()?;
-            let first_result = format(lines);
-            let second_result =
-                format(first_result.clone().into_iter().map(Cow::into_owned));
+            let one_paragraph = u.arbitrary()?;
+            let first_result = format(lines, one_paragraph);
+            let second_result = format(
+                first_result.clone().into_iter().map(Cow::into_owned),
+                one_paragraph,
+            );
 
             assert_eq!(first_result, second_result);
 
@@ -152,10 +160,10 @@ mod tests {
     }
 
     #[test]
-    fn test_empty_lines() {
+    fn test_empty_lines_with_many_paragraphs() {
         arbtest(|u| {
             let lines: Vec<String> = u.arbitrary()?;
-            let result = format(lines);
+            let result = format(lines, false);
 
             let mut streak = 0;
 
@@ -177,11 +185,24 @@ mod tests {
     }
 
     #[test]
+    fn test_empty_lines_with_one_paragraph() {
+        arbtest(|u| {
+            let lines: Vec<String> = u.arbitrary()?;
+            let result = format(lines, true);
+
+            assert!(result.iter().all(|item| !item.is_empty()));
+
+            Ok(())
+        });
+    }
+
+    #[test]
     fn test_line_count() {
         arbtest(|u| {
             let lines: Vec<String> = u.arbitrary()?;
+            let one_paragraph = u.arbitrary()?;
             let length = lines.len();
-            let result = format(lines);
+            let result = format(lines, one_paragraph);
 
             assert!(length >= result.len());
 
@@ -191,58 +212,73 @@ mod tests {
 
     #[test]
     fn test_loop() {
-        let locale: Locale = "uk-UA".parse().unwrap();
-        let mut machine = StateMachine::new(&locale);
+        for one_paragraph in [false, true] {
+            let locale: Locale = "uk-UA".parse().unwrap();
+            let mut machine = StateMachine::new(&locale, one_paragraph);
 
-        let mut result = Vec::new();
-        for line in [
-            "",
-            "Перший рядок   ",
-            "second line\n\r",
-            "Another  ",
-            "another",
-            "3 three\r\n",
-            "   ",
-            "",
-            "",
-            "\n",
-            "",
-            "x",
-            "",
-            "a",
-            "B",
-            "",
-            "a X",
-            "Є d",
-            "b   ",
-            "   ",
-            "\n",
-        ] {
-            result.extend(machine.feed(line.into()));
-        }
-
-        assert_eq!(result.len(), 10);
-
-        result.extend(machine.flush());
-
-        assert_eq!(
-            result,
-            vec![
-                "3 three",
-                "Перший рядок",
-                "Another",
-                "Second line",
+            let mut result = Vec::new();
+            for line in [
                 "",
+                "Перший рядок   ",
+                "second line\n\r",
+                "Another  ",
+                "another",
+                "3 three\r\n",
+                "   ",
+                "",
+                "",
+                "\n",
                 "",
                 "x",
                 "",
-                "A",
+                "a",
                 "B",
                 "",
-                "є d",
                 "a X",
-                "b",
-            ]
-        );
+                "Є d",
+                "b   ",
+                "   ",
+                "\n",
+            ] {
+                result.extend(machine.feed(line.into()));
+            }
+
+            assert_eq!(result.len(), if one_paragraph { 0 } else { 10 });
+
+            result.extend(machine.flush());
+
+            let expected = if one_paragraph {
+                vec![
+                    "3 three",
+                    "є d",
+                    "перший рядок",
+                    "a",
+                    "a X",
+                    "another",
+                    "b",
+                    "second line",
+                    "x",
+                ]
+            } else {
+                vec![
+                    "3 three",
+                    "Перший рядок",
+                    "Another",
+                    "Second line",
+                    "",
+                    "",
+                    "x",
+                    "",
+                    "A",
+                    "B",
+                    "",
+                    "є d",
+                    "a X",
+                    "b",
+                ]
+            };
+
+            assert_eq!(result, expected);
+        }
     }
 }

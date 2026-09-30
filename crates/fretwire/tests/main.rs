@@ -37,6 +37,7 @@ fn main() {
 
     let mut settings = Settings {
         path: Some("test.few".into()),
+        one_paragraph: false,
         move_marker: Borrowed(":>"),
         allow_external_writes: false,
         allow_deletions: false,

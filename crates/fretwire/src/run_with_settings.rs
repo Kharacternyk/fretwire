@@ -19,12 +19,21 @@ pub fn run_with_settings(settings: &Settings) -> Result<(), Error> {
     };
 
     let (mut formats, lines_to_move) = if let Some(path) = &settings.path {
-        let (format, lines_to_move) =
-            FormatInPlace::try_new(path, &settings.locale, move_policy, empty(), false)?;
+        let (format, lines_to_move) = FormatInPlace::try_new(
+            path,
+            &settings.locale,
+            move_policy,
+            settings.one_paragraph,
+            empty(),
+            false,
+        )?;
 
         (vec![format], lines_to_move)
     } else {
-        (Vec::new(), format_stdio(&settings.locale, move_policy)?)
+        (
+            Vec::new(),
+            format_stdio(&settings.locale, move_policy, settings.one_paragraph)?,
+        )
     };
 
     let mut result: Result<(), Error> = Ok(());
@@ -39,6 +48,7 @@ pub fn run_with_settings(settings: &Settings) -> Result<(), Error> {
                 allow_deletions: false,
                 allow_external_writes: false,
             },
+            settings.one_paragraph,
             lines,
             true,
         ) {
@@ -76,12 +86,14 @@ pub fn run_with_settings(settings: &Settings) -> Result<(), Error> {
 fn format_stdio(
     locale: &Locale,
     move_policy: MovePolicy,
+    one_paragraph: bool,
 ) -> Result<HashMap<PathBuf, Vec<String>>, Error> {
     format(
         &mut stdin().lock(),
         &mut stdout().lock(),
         locale,
         move_policy,
+        one_paragraph,
         empty(),
     )
     .map_err(|error| FormatFailed { path: None, error })

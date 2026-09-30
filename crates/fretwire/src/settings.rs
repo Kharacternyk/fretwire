@@ -22,6 +22,9 @@ pub struct Settings {
     #[arg(short = 'w', long)]
     pub allow_external_writes: bool,
 
+    #[arg(short = '1', long, env = "FRETWIRE_ONE_PARAGRAPH")]
+    pub one_paragraph: bool,
+
     #[arg(long)]
     pub skip_disk_sync: bool,
 }
