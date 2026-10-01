@@ -3,7 +3,7 @@ use crate::{
     IntoIOFailed,
 };
 use core::cmp::max;
-use fretwire_format::{MovePolicy, format};
+use fretwire_format::{MovePolicy, Stamp, format};
 use fretwire_locale::Locale;
 use positioned_io::{RandomAccessFile, Size, SizeCursor, Slice, WriteAt};
 use std::{
@@ -27,6 +27,7 @@ impl FormatInPlace {
         path: &PathBuf,
         locale: &Locale,
         move_policy: MovePolicy,
+        stamp: Stamp,
         one_paragraph: bool,
         prepend_lines: impl IntoIterator<Item = String>,
         allow_creation: bool,
@@ -67,6 +68,7 @@ impl FormatInPlace {
             &mut sink,
             locale,
             move_policy,
+            stamp,
             one_paragraph,
             prepend_lines,
         );

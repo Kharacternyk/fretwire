@@ -2,7 +2,7 @@ use crate::{
     Error::{self, FormatFailed},
     FormatInPlace, IntoIOFailed, Settings,
 };
-use fretwire_format::{MovePolicy, format};
+use fretwire_format::{MovePolicy, Stamp, format};
 use fretwire_locale::Locale;
 use std::{
     collections::HashMap,
@@ -17,12 +17,17 @@ pub fn run_with_settings(settings: &Settings) -> Result<(), Error> {
         allow_deletions: settings.allow_deletions,
         allow_external_writes: settings.allow_external_writes,
     };
+    let stamp = Stamp {
+        marker: "",
+        value: "",
+    };
 
     let (mut formats, lines_to_move) = if let Some(path) = &settings.path {
         let (format, lines_to_move) = FormatInPlace::try_new(
             path,
             &settings.locale,
             move_policy,
+            stamp,
             settings.one_paragraph,
             empty(),
             false,
@@ -32,7 +37,7 @@ pub fn run_with_settings(settings: &Settings) -> Result<(), Error> {
     } else {
         (
             Vec::new(),
-            format_stdio(&settings.locale, move_policy, settings.one_paragraph)?,
+            format_stdio(&settings.locale, move_policy, stamp, settings.one_paragraph)?,
         )
     };
 
@@ -48,6 +53,7 @@ pub fn run_with_settings(settings: &Settings) -> Result<(), Error> {
                 allow_deletions: false,
                 allow_external_writes: false,
             },
+            stamp,
             settings.one_paragraph,
             lines,
             true,
@@ -86,6 +92,7 @@ pub fn run_with_settings(settings: &Settings) -> Result<(), Error> {
 fn format_stdio(
     locale: &Locale,
     move_policy: MovePolicy,
+    stamp: Stamp,
     one_paragraph: bool,
 ) -> Result<HashMap<PathBuf, Vec<String>>, Error> {
     format(
@@ -93,6 +100,7 @@ fn format_stdio(
         &mut stdout().lock(),
         locale,
         move_policy,
+        stamp,
         one_paragraph,
         empty(),
     )
