@@ -1,6 +1,6 @@
 use crate::{
     Error::{self, DeletionForbidden, ExternalWriteForbidden, ReadFailed, WriteFailed},
-    MovePolicy, StateMachine,
+    MovePolicy, Stamp, StateMachine,
 };
 use fretwire_locale::Locale;
 use path_clean::clean;
@@ -16,12 +16,13 @@ pub fn format(
     mut sink: &mut impl Write,
     locale: &Locale,
     move_policy: MovePolicy,
+    stamp: Stamp,
     one_paragraph: bool,
     prepend_lines: impl IntoIterator<Item = String>,
 ) -> Result<(u64, HashMap<PathBuf, Vec<String>>), Error> {
     let mut size = 0;
     let mut lines_to_move: HashMap<PathBuf, Vec<String>> = HashMap::new();
-    let mut machine = StateMachine::new(locale, one_paragraph);
+    let mut machine = StateMachine::new(locale, stamp, one_paragraph);
 
     for line in prepend_lines {
         write(&mut sink, machine.feed(line), &mut size)?;
@@ -97,7 +98,7 @@ fn write(
 
 #[cfg(test)]
 mod tests {
-    use super::{HashMap, Locale, MovePolicy, format};
+    use super::{HashMap, Locale, MovePolicy, Stamp, format};
     use std::io::BufReader;
 
     #[test]
@@ -149,6 +150,10 @@ mod tests {
                     marker: ":>",
                     allow_external_writes: true,
                     allow_deletions: true
+                },
+                Stamp {
+                    marker: "",
+                    value: "123",
                 },
                 false,
                 prepend_lines

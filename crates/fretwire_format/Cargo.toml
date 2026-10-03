@@ -11,6 +11,7 @@ fretwire_locale.workspace = true
 path-clean = "1.0.1"
 
 [dev-dependencies]
+arbitrary = { version = "1.4.2", features = ["derive"] }
 arbtest.workspace = true
 
 [lints]
