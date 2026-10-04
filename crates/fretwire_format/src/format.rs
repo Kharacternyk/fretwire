@@ -13,7 +13,7 @@ use std::{
 
 pub fn format(
     source: &mut impl BufRead,
-    mut sink: &mut impl Write,
+    sink: &mut impl Write,
     locale: &Locale,
     move_policy: MovePolicy,
     stamp: Stamp,
@@ -25,18 +25,18 @@ pub fn format(
     let mut machine = StateMachine::new(locale, stamp, one_paragraph);
 
     for line in prepend_lines {
-        write(&mut sink, machine.feed(line), &mut size)?;
+        write(sink, machine.feed(line), &mut size)?;
     }
 
     for line in source.lines() {
         let line = line.map_err(ReadFailed)?;
 
         if let Some(line) = try_move(line, move_policy, &mut lines_to_move)? {
-            write(&mut sink, machine.feed(line), &mut size)?;
+            write(sink, machine.feed(line), &mut size)?;
         }
     }
 
-    write(&mut sink, machine.flush(), &mut size)?;
+    write(sink, machine.flush(), &mut size)?;
 
     sink.flush().map_err(WriteFailed)?;
 
