@@ -41,6 +41,8 @@ fn main() {
         move_marker: Borrowed(":>"),
         allow_external_writes: false,
         allow_deletions: false,
+        timestamp_marker: Borrowed(""),
+        timestamp_pattern: Borrowed(""),
         skip_disk_sync: true,
         locale: "".parse().unwrap(),
     };

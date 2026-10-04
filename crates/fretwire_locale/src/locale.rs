@@ -3,15 +3,23 @@ use crate::{
     CaseRelation::{self, Stable, Unstable},
 };
 use core::cmp::Ordering;
+use icu_calendar::Gregorian;
 use icu_casemap::{CaseMapper, CaseMapperBorrowed};
 use icu_collator::{Collator, CollatorBorrowed};
+use icu_datetime::{
+    fieldsets::enums::CompositeFieldSet,
+    pattern::{DateTimePattern, FixedCalendarDateTimeNames},
+};
 use icu_locale::Locale as ICULocale;
 use icu_properties::{
     CodePointSetData, CodePointSetDataBorrowed,
     props::{ChangesWhenLowercased, Lowercase},
 };
+use icu_time::{TimeZoneInfo, ZonedDateTime, zone::models::AtTime};
+use jiff::Zoned;
+use jiff_icu::ConvertFrom;
 use std::{str::FromStr, sync::Arc};
-use writeable::Writeable;
+use writeable::{TryWriteable, Writeable};
 
 #[derive(Clone)]
 pub struct Locale {
@@ -87,6 +95,29 @@ impl Locale {
     #[must_use]
     pub fn compare(&self, a: &str, b: &str) -> Ordering {
         self.collator.compare(a, b)
+    }
+
+    pub fn timestamp(&self, pattern: &str) -> Result<String, ()> {
+        let pattern = DateTimePattern::try_from_pattern_str(pattern).map_err(|_| ())?;
+        let mut names = FixedCalendarDateTimeNames::<_, CompositeFieldSet>::try_new(
+            self.icu.clone().into(),
+        )
+        .map_err(|_| ())?;
+
+        let now = ZonedDateTime::<_, TimeZoneInfo<AtTime>>::convert_from(&Zoned::now());
+        let now = ZonedDateTime {
+            date: now.date.to_calendar(Gregorian),
+            time: now.time,
+            zone: now.zone,
+        };
+
+        names
+            .include_for_pattern(&pattern)
+            .map_err(|_| ())?
+            .format(&now)
+            .try_write_to_string()
+            .map_err(|_| ())
+            .map(Into::into)
     }
 }
 

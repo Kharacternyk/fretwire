@@ -12,4 +12,5 @@ pub enum Error {
         error: fretwire_format::Error,
         path: Option<PathBuf>,
     },
+    TimestampFailed,
 }

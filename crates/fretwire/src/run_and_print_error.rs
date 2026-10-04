@@ -1,5 +1,5 @@
 use crate::{
-    Error::{self, ClapFailed, FormatFailed, IOFailed, LockFailed},
+    Error::{self, ClapFailed, FormatFailed, IOFailed, LockFailed, TimestampFailed},
     run,
 };
 use clap::error::ErrorKind::{DisplayHelp, DisplayVersion};
@@ -62,6 +62,9 @@ fn print(error: &Error) {
                 eprintln!();
             }
         }
+        TimestampFailed => {
+            eprintln!("Timestamp creation failed");
+        }
     }
 }
 
@@ -89,5 +92,6 @@ fn exit_code(error: &Error) -> ExitCode {
         IOFailed { .. } => 4.into(),
         FormatFailed { .. } => 5.into(),
         LockFailed(_) => 6.into(),
+        TimestampFailed => 7.into(),
     }
 }

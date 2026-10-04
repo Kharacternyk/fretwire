@@ -1,10 +1,11 @@
 use crate::{
-    Error::{self, FormatFailed},
+    Error::{self, FormatFailed, TimestampFailed},
     FormatInPlace, IntoIOFailed, Settings,
 };
 use fretwire_format::{MovePolicy, Stamp, format};
 use fretwire_locale::Locale;
 use std::{
+    borrow::Cow::{Borrowed, Owned},
     collections::HashMap,
     io::{stdin, stdout},
     iter::empty,
@@ -12,14 +13,25 @@ use std::{
 };
 
 pub fn run_with_settings(settings: &Settings) -> Result<(), Error> {
+    let stamp_value = if settings.timestamp_marker.is_empty() {
+        Borrowed("")
+    } else {
+        Owned(
+            settings
+                .locale
+                .timestamp(&settings.timestamp_pattern)
+                .map_err(|()| TimestampFailed)?,
+        )
+    };
+    let stamp = Stamp {
+        marker: &settings.timestamp_marker,
+        value: &stamp_value,
+    };
+
     let move_policy = MovePolicy {
         marker: &settings.move_marker,
         allow_deletions: settings.allow_deletions,
         allow_external_writes: settings.allow_external_writes,
-    };
-    let stamp = Stamp {
-        marker: "",
-        value: "",
     };
 
     let (mut formats, lines_to_move) = if let Some(path) = &settings.path {

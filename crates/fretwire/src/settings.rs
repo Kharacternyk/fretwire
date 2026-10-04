@@ -25,6 +25,15 @@ pub struct Settings {
     #[arg(short = '1', long, env = "FRETWIRE_ONE_PARAGRAPH")]
     pub one_paragraph: bool,
 
+    #[arg(long, env = "FRETWIRE_TIMESTAMP_MARKER", default_value_t = Borrowed(""))]
+    pub timestamp_marker: Cow<'static, str>,
+
+    #[arg(
+        long, env = "FRETWIRE_TIMESTAMP_PATTERN",
+        default_value_t = Borrowed("yyyy-MM-dd")
+    )]
+    pub timestamp_pattern: Cow<'static, str>,
+
     #[arg(long)]
     pub skip_disk_sync: bool,
 }
