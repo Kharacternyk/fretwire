@@ -1,6 +1,6 @@
 use crate::{
-    Error::{self, FormatFailed, TimestampFailed},
-    FormatInPlace, IntoIOFailed, Settings,
+    Error::{self, FormatFailed, IOFailed, TimestampFailed},
+    FormatInPlace, Settings,
 };
 use fretwire_format::{MovePolicy, Stamp, format};
 use fretwire_locale::Locale;
@@ -34,7 +34,7 @@ pub fn run_with_settings(settings: &Settings) -> Result<(), Error> {
         allow_external_writes: settings.allow_external_writes,
     };
 
-    let (mut formats, lines_to_move) = if let Some(path) = &settings.path {
+    let (last_format, lines_to_move) = if let Some(path) = &settings.path {
         let (format, lines_to_move) = FormatInPlace::try_new(
             path,
             &settings.locale,
@@ -45,16 +45,16 @@ pub fn run_with_settings(settings: &Settings) -> Result<(), Error> {
             false,
         )?;
 
-        (vec![format], lines_to_move)
+        (Some((format, Borrowed(path))), lines_to_move)
     } else {
         (
-            Vec::new(),
+            None,
             format_stdio(&settings.locale, move_policy, stamp, settings.one_paragraph)?,
         )
     };
 
     let mut result: Result<(), Error> = Ok(());
-    let mut paths = Vec::new();
+    let mut formats = Vec::with_capacity(lines_to_move.len() + last_format.iter().len());
 
     for (path, lines) in lines_to_move {
         match FormatInPlace::try_new(
@@ -73,8 +73,7 @@ pub fn run_with_settings(settings: &Settings) -> Result<(), Error> {
             Ok((format, lines_to_move)) => {
                 assert!(lines_to_move.is_empty());
 
-                formats.push(format);
-                paths.push(path);
+                formats.push((format, Owned(path)));
             }
             Err(error) => {
                 result = Err(error);
@@ -84,17 +83,18 @@ pub fn run_with_settings(settings: &Settings) -> Result<(), Error> {
         }
     }
 
-    for (i, format) in formats.into_iter().enumerate() {
-        let path = match (i, &settings.path) {
-            (0, Some(path)) => path,
-            (_, Some(_)) => &paths[i - 1],
-            _ => &paths[i],
-        };
+    if let Some(format) = last_format {
+        formats.push(format);
+    }
 
+    for (format, path) in formats {
         if result.is_err() {
             let _ = format.rollback();
-        } else if let error @ Err(_) = format.commit(settings.skip_disk_sync).path(path) {
-            result = error;
+        } else if let Err(error) = format.commit(settings.skip_disk_sync) {
+            result = Err(IOFailed {
+                error: Some(error),
+                path: path.into_owned(),
+            });
         }
     }
 
