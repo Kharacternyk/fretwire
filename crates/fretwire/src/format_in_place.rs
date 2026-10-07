@@ -10,7 +10,7 @@ use std::{
     collections::HashMap,
     fs::{File, OpenOptions, TryLockError},
     io::{self, BufReader, BufWriter, Write, copy},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 const STAGE_ONE_MARKER: &str = "\n\nFRETWIRE STAGE ONE\n\n";
@@ -24,7 +24,7 @@ pub struct FormatInPlace {
 
 impl FormatInPlace {
     pub fn try_new(
-        path: &PathBuf,
+        path: &Path,
         locale: &Locale,
         move_policy: MovePolicy,
         stamp: Stamp,
