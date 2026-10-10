@@ -13,22 +13,18 @@ use std::{
     iter::repeat_n,
 };
 
-type MarkedString = (String, MarkerBoundary);
-
 pub struct StateMachine<'a, 'b> {
     locale: &'a Locale,
     stamp: Stamp<'b>,
     one_paragraph: bool,
 
-    lower_lines: Vec<MarkedString>,
-    upper_lines: Vec<MarkedString>,
-    stable_lines: Vec<MarkedString>,
+    lower_lines: Vec<String>,
+    upper_lines: Vec<String>,
+    stable_lines: Vec<String>,
 
     leading_count: u8,
     body_count: usize,
     trailing_count: u8,
-
-    add_stamps: bool,
 }
 
 impl<'a, 'b> StateMachine<'a, 'b> {
@@ -46,8 +42,6 @@ impl<'a, 'b> StateMachine<'a, 'b> {
             leading_count: 0,
             body_count: 0,
             trailing_count: 0,
-
-            add_stamps: false,
         }
     }
 
@@ -68,7 +62,6 @@ impl<'a, 'b> StateMachine<'a, 'b> {
                 self.leading_count = self.trailing_count;
                 self.body_count = 1;
                 self.trailing_count = 0;
-                self.add_stamps = false;
 
                 result
             } else {
@@ -77,22 +70,10 @@ impl<'a, 'b> StateMachine<'a, 'b> {
                 None
             };
 
-            let marker_boundary = MarkerBoundary::find(&line, self.stamp.marker);
-
-            match marker_boundary {
-                Closed(_) => self.add_stamps = true,
-                Open(i) if i + self.stamp.marker.len() == line.len() => {
-                    self.add_stamps = true;
-                }
-                _ => {}
-            }
-
-            let item = (line, marker_boundary);
-
             match self.locale.case_relation(character) {
-                Unstable(Lower) => self.lower_lines.push(item),
-                Unstable(Upper) => self.upper_lines.push(item),
-                Stable => self.stable_lines.push(item),
+                Unstable(Lower) => self.lower_lines.push(line),
+                Unstable(Upper) => self.upper_lines.push(line),
+                Stable => self.stable_lines.push(line),
             }
 
             result
@@ -117,29 +98,45 @@ impl<'a, 'b> StateMachine<'a, 'b> {
 
     fn flush_not_empty(&mut self) -> impl Iterator<Item = Cow<'static, str>> + use<> {
         if self.upper_lines.len() >= self.lower_lines.len() {
-            for (line, _) in &mut self.lower_lines {
+            for line in &mut self.lower_lines {
                 self.locale.change_first_char_case(line, Upper);
             }
         } else {
-            for (line, _) in &mut self.upper_lines {
+            for line in &mut self.upper_lines {
                 self.locale.change_first_char_case(line, Lower);
             }
         }
 
         let mut result = Vec::with_capacity(self.body_count);
+        let mut add_stamps = false;
 
         for vector in [
             &mut self.lower_lines,
             &mut self.upper_lines,
             &mut self.stable_lines,
         ] {
-            result.append(vector);
+            for line in vector.drain(..) {
+                let marker_boundary = MarkerBoundary::find(&line, self.stamp.marker);
+
+                if !add_stamps {
+                    match marker_boundary {
+                        Closed(_) => add_stamps = true,
+                        Open(i) if i + self.stamp.marker.len() == line.len() => {
+                            add_stamps = true;
+                        }
+                        _ => {}
+                    }
+                }
+
+                result.push((line, marker_boundary));
+            }
         }
 
-        let compare_before_marker = |a: &MarkedString, b: &MarkedString| {
-            self.locale
-                .compare(a.1.before_marker(&a.0), b.1.before_marker(&b.0))
-        };
+        let compare_before_marker =
+            |a: &(String, MarkerBoundary), b: &(String, MarkerBoundary)| {
+                self.locale
+                    .compare(a.1.before_marker(&a.0), b.1.before_marker(&b.0))
+            };
 
         result.sort_unstable_by(|a, b| match compare_before_marker(a, b) {
             Equal => match (a.1, b.1) {
@@ -151,11 +148,11 @@ impl<'a, 'b> StateMachine<'a, 'b> {
             x => x,
         });
         result.dedup_by(|a, b| match compare_before_marker(a, b) {
-            Equal => self.add_stamps || a.0.len() == b.0.len(),
+            Equal => add_stamps || a.0.len() == b.0.len(),
             _ => false,
         });
 
-        if self.add_stamps {
+        if add_stamps {
             for (line, boundary) in &mut result {
                 match boundary {
                     Absent => {
@@ -197,6 +194,41 @@ mod tests {
 
         result.extend(machine.flush());
         result
+    }
+
+    #[test]
+    fn test_marker_boundary_after_case_expansion() {
+        let locale: Locale = "tr".parse().unwrap();
+        let stamp = Stamp {
+            marker: "@",
+            value: "2026",
+        };
+        let mut machine = StateMachine::new(&locale, stamp, false);
+
+        let mut result = Vec::new();
+        for line in ["i@", "A@"] {
+            result.extend(machine.feed(line.into()));
+        }
+        result.extend(machine.flush());
+
+        assert_eq!(result, ["A@2026", "İ@2026"]);
+    }
+
+    #[test]
+    fn test_idempotence_after_case_changes_partial_marker() {
+        let stamp = Stamp {
+            marker: "qx",
+            value: "2026",
+        };
+        let first_result = format(["q".into(), "E".into()], stamp, false);
+        let second_result = format(
+            first_result.clone().into_iter().map(Cow::into_owned),
+            stamp,
+            false,
+        );
+
+        assert_eq!(first_result, ["E", "Q"]);
+        assert_eq!(first_result, second_result);
     }
 
     #[test]
