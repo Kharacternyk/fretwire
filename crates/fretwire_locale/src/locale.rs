@@ -10,7 +10,6 @@ use icu_datetime::{
     fieldsets::enums::CompositeFieldSet,
     pattern::{DateTimePattern, FixedCalendarDateTimeNames},
 };
-use icu_locale::Locale as ICULocale;
 use icu_properties::{
     CodePointSetData, CodePointSetDataBorrowed,
     props::{ChangesWhenLowercased, Lowercase},
@@ -26,7 +25,7 @@ pub struct Locale {
     lower: CodePointSetDataBorrowed<'static>,
     upper: CodePointSetDataBorrowed<'static>,
     collator: CollatorBorrowed<'static>,
-    icu: ICULocale,
+    icu: icu_locale::Locale,
 }
 
 impl FromStr for Locale {
@@ -34,9 +33,9 @@ impl FromStr for Locale {
 
     fn from_str(descriptor: &str) -> Result<Self, ()> {
         let icu = if descriptor.is_empty() {
-            ICULocale::UNKNOWN
+            icu_locale::Locale::UNKNOWN
         } else {
-            ICULocale::try_from_str(descriptor).map_err(|_| ())?
+            icu_locale::Locale::try_from_str(descriptor).map_err(|_| ())?
         };
 
         let preferences = icu.clone().into();
