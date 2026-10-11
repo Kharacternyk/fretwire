@@ -18,15 +18,14 @@ use icu_properties::{
 use icu_time::{TimeZoneInfo, ZonedDateTime, zone::models::AtTime};
 use jiff::Zoned;
 use jiff_icu::ConvertFrom;
-use std::{str::FromStr, sync::Arc};
+use std::str::FromStr;
 use writeable::{TryWriteable, Writeable};
 
-#[derive(Clone)]
 pub struct Locale {
     mapper: CaseMapperBorrowed<'static>,
     lower: CodePointSetDataBorrowed<'static>,
     upper: CodePointSetDataBorrowed<'static>,
-    collator: Arc<CollatorBorrowed<'static>>,
+    collator: CollatorBorrowed<'static>,
     icu: ICULocale,
 }
 
@@ -42,7 +41,7 @@ impl FromStr for Locale {
 
         let preferences = icu.clone().into();
         let options = Default::default();
-        let collator = Arc::new(Collator::try_new(preferences, options).map_err(|_| ())?);
+        let collator = Collator::try_new(preferences, options).map_err(|_| ())?;
 
         Ok(Self {
             mapper: CaseMapper::new(),

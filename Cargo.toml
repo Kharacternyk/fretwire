@@ -16,10 +16,13 @@ missing_panics_doc = { level = "allow", priority = 1 }
 ref_option = { level = "allow", priority = 1 }
 result_unit_err = { level = "allow", priority = 1 }
 struct_excessive_bools = { level = "allow", priority = 1 }
+too_many_lines = { level = "allow", priority = 1 }
 
 absolute_paths = "warn"
 
 [workspace.dependencies]
 arbtest = "0.3.2"
+fretwire = { path = "./crates/fretwire/" }
 fretwire_format = { path = "./crates/fretwire_format/" }
+fretwire_format_in_place = { path = "./crates/fretwire_format_in_place/" }
 fretwire_locale = { path = "./crates/fretwire_locale/" }

@@ -215,10 +215,21 @@ dependencies = [
 name = "fretwire"
 version = "1.0.0-rc"
 dependencies = [
- "clap",
  "fretwire_format",
+ "fretwire_format_in_place",
  "fretwire_locale",
- "positioned-io",
+]
+
+[[package]]
+name = "fretwire_cli"
+version = "1.0.0-rc"
+dependencies = [
+ "anstream",
+ "clap",
+ "fretwire",
+ "fretwire_format",
+ "fretwire_format_in_place",
+ "fretwire_locale",
 ]
 
 [[package]]
@@ -229,6 +240,15 @@ dependencies = [
  "arbtest",
  "fretwire_locale",
  "path-clean",
+]
+
+[[package]]
+name = "fretwire_format_in_place"
+version = "1.0.0-rc"
+dependencies = [
+ "fretwire_format",
+ "fretwire_locale",
+ "positioned-io",
 ]
 
 [[package]]

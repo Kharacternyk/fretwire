@@ -1,14 +1,11 @@
-use crate::{
-    Error::{self, FormatFailed, IOFailed, LockFailed},
-    IntoIOFailed,
-};
+use crate::Error::{self, FormatFailed, IOFailed, SizeFailed};
 use core::cmp::max;
 use fretwire_format::{MovePolicy, Stamp, format};
 use fretwire_locale::Locale;
 use positioned_io::{RandomAccessFile, Size, SizeCursor, Slice, WriteAt};
 use std::{
     collections::HashMap,
-    fs::{File, OpenOptions, TryLockError},
+    fs::{File, OpenOptions},
     io::{self, BufReader, BufWriter, Write, copy},
     path::{Path, PathBuf},
 };
@@ -16,6 +13,7 @@ use std::{
 const STAGE_ONE_MARKER: &str = "\n\nFRETWIRE STAGE ONE\n\n";
 const STAGE_TWO_MARKER: &str = "\n\nFRETWIRE STAGE TWO\n\n";
 
+#[must_use]
 pub struct FormatInPlace {
     file: File,
     original_size: u64,
@@ -36,19 +34,12 @@ impl FormatInPlace {
             .read(true)
             .write(true)
             .create(allow_creation)
-            .open(path)
-            .path(path)?;
+            .open(path)?;
 
-        file.try_lock().map_err(|error| match error {
-            TryLockError::Error(error) => IOFailed {
-                error: Some(error),
-                path: path.into(),
-            },
-            TryLockError::WouldBlock => LockFailed(path.into()),
-        })?;
+        file.try_lock()?;
 
-        let original_size = file.size().path(path)?.path(path)?;
-        let file = RandomAccessFile::try_new(file).path(path)?;
+        let original_size = file.size()?.ok_or(SizeFailed)?;
+        let file = RandomAccessFile::try_new(file)?;
 
         let sink_capacity = max(1 << 13, STAGE_ONE_MARKER.len() * 2);
 
@@ -87,15 +78,9 @@ impl FormatInPlace {
                     let _ = file.set_len(original_size);
                 }
 
-                Err(FormatFailed {
-                    error,
-                    path: Some(path.into()),
-                })
+                Err(FormatFailed(error))
             }
-            (Ok(_), Err((_, error))) => Err(IOFailed {
-                error: Some(error),
-                path: path.into(),
-            }),
+            (Ok(_), Err((_, error))) => Err(IOFailed(error)),
             (Ok((formatted_size, lines_to_move)), Ok(file)) => Ok((
                 Self {
                     file,

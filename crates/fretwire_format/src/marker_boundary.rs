@@ -1,4 +1,4 @@
-use self::MarkerBoundary::{Absent, Closed, Open};
+use crate::MarkerBoundary::{Absent, Closed, Open};
 
 // TODO: Attach to the string and the marker?
 #[derive(Copy, Clone)]

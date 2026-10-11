@@ -1,12 +1,14 @@
-use fretwire::{
-    Error::{FormatFailed, LockFailed},
-    Settings, run_with_settings,
+use fretwire::{Error::FormatInPlaceFailed, run};
+use fretwire_format::{
+    Error::{DeletionForbidden, ExternalWriteForbidden},
+    MovePolicy,
 };
-use fretwire_format::Error::{DeletionForbidden, ExternalWriteForbidden};
+use fretwire_format_in_place::Error::{FormatFailed, LockFailed};
 use std::{
     borrow::Cow::Borrowed,
     env::set_current_dir,
     fs::{File, read, write},
+    path::PathBuf,
 };
 
 #[test]
@@ -32,53 +34,92 @@ fn main() {
         "",
     ];
     let content = content.join("\n");
+    let path = PathBuf::from("test.few");
 
-    write("test.few", &content).unwrap();
+    write(&path, &content).unwrap();
 
-    let mut settings = Settings {
-        path: Some("test.few".into()),
-        one_paragraph: false,
-        move_marker: Borrowed(":>"),
+    let locale = "".parse().unwrap();
+    let mut move_policy = MovePolicy {
+        marker: ":>",
         allow_external_writes: false,
         allow_deletions: false,
-        timestamp_marker: Borrowed(""),
-        timestamp_pattern: Borrowed(""),
-        skip_disk_sync: true,
-        locale: "".parse().unwrap(),
     };
+    let one_paragraph = false;
+    let timestamp_marker = "";
+    let timestamp_pattern = "";
+    let skip_disk_sync = true;
 
-    assert!(matches!(
-        run_with_settings(&settings),
-        Err(FormatFailed {
-            error: DeletionForbidden { .. },
-            ..
-        }),
-    ));
-    assert_eq!(read("test.few").unwrap(), content.as_bytes());
+    match run(
+        Some(&path),
+        &locale,
+        move_policy,
+        one_paragraph,
+        timestamp_marker,
+        timestamp_pattern,
+        skip_disk_sync,
+    ) {
+        Err(FormatInPlaceFailed(FormatFailed(DeletionForbidden { .. }), new_path))
+            if new_path == Borrowed(&path) => {}
+        _ => panic!(),
+    }
 
-    settings.allow_deletions = true;
+    assert_eq!(read(&path).unwrap(), content.as_bytes());
 
-    assert!(matches!(
-        run_with_settings(&settings),
-        Err(FormatFailed {
-            error: ExternalWriteForbidden { .. },
-            ..
-        }),
-    ));
-    assert_eq!(read("test.few").unwrap(), content.as_bytes());
+    move_policy.allow_deletions = true;
 
-    settings.allow_external_writes = true;
+    match run(
+        Some(&path),
+        &locale,
+        move_policy,
+        one_paragraph,
+        timestamp_marker,
+        timestamp_pattern,
+        skip_disk_sync,
+    ) {
+        Err(FormatInPlaceFailed(FormatFailed(ExternalWriteForbidden { .. }), new_path))
+            if new_path == Borrowed(&path) => {}
+        _ => panic!(),
+    }
 
-    let moved_file = File::create("moved.few").unwrap();
+    assert_eq!(read(&path).unwrap(), content.as_bytes());
+
+    move_policy.allow_external_writes = true;
+
+    let moved_path = "moved.few";
+    let moved_file = File::create(moved_path).unwrap();
 
     moved_file.try_lock().unwrap();
 
-    assert!(matches!(run_with_settings(&settings), Err(LockFailed(_))));
-    assert_eq!(read("test.few").unwrap(), content.as_bytes());
+    match run(
+        Some(&path),
+        &locale,
+        move_policy,
+        one_paragraph,
+        timestamp_marker,
+        timestamp_pattern,
+        skip_disk_sync,
+    ) {
+        Err(FormatInPlaceFailed(LockFailed, new_path))
+            if new_path.to_str() == Some(moved_path) => {}
+        _ => panic!(),
+    }
+
+    assert_eq!(read(&path).unwrap(), content.as_bytes());
 
     drop(moved_file);
 
-    assert!(run_with_settings(&settings).is_ok());
+    assert!(
+        run(
+            Some(&path),
+            &locale,
+            move_policy,
+            one_paragraph,
+            timestamp_marker,
+            timestamp_pattern,
+            skip_disk_sync,
+        )
+        .is_ok()
+    );
 
     let content = [
         "a",
@@ -96,9 +137,9 @@ fn main() {
     ];
     let content = content.join("\n");
 
-    assert_eq!(read("test.few").unwrap(), content.as_bytes());
+    assert_eq!(read(path).unwrap(), content.as_bytes());
 
     let content = ["Move", "Spans", ""].join("\n");
 
-    assert_eq!(read("moved.few").unwrap(), content.as_bytes());
+    assert_eq!(read(moved_path).unwrap(), content.as_bytes());
 }

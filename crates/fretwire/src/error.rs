@@ -1,16 +1,15 @@
-use std::{io, path::PathBuf};
+use crate::Error::FormatFailed;
+use std::{borrow::Cow, path::Path};
 
 #[derive(Debug)]
-pub enum Error {
-    ClapFailed(clap::Error),
-    LockFailed(PathBuf),
-    IOFailed {
-        error: Option<io::Error>,
-        path: PathBuf,
-    },
-    FormatFailed {
-        error: fretwire_format::Error,
-        path: Option<PathBuf>,
-    },
+pub enum Error<'a> {
+    FormatInPlaceFailed(fretwire_format_in_place::Error, Cow<'a, Path>),
+    FormatFailed(fretwire_format::Error),
     TimestampFailed,
+}
+
+impl From<fretwire_format::Error> for Error<'_> {
+    fn from(error: fretwire_format::Error) -> Self {
+        FormatFailed(error)
+    }
 }
