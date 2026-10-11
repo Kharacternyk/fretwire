@@ -1,6 +1,5 @@
-pub use self::{
-    error::Error, exit_code::exit_code, print::print, run::run, settings::Settings,
-};
+pub use self::run::run;
+use self::{error::Error, exit_code::exit_code, print::print, settings::Settings};
 
 mod error;
 mod exit_code;
