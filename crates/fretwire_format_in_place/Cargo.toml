@@ -3,6 +3,9 @@ name = "fretwire_format_in_place"
 version.workspace = true
 edition.workspace = true
 
+[lib]
+doctest = false
+
 [dependencies]
 fretwire_format.workspace = true
 fretwire_locale.workspace = true

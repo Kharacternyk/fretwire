@@ -3,6 +3,9 @@ name = "fretwire_cli"
 version.workspace = true
 edition.workspace = true
 
+[lib]
+doctest = false
+
 [[bin]]
 name = "fretwire"
 path = "src/main.rs"
@@ -17,3 +20,4 @@ fretwire_locale.workspace = true
 
 [lints]
 workspace = true
+
