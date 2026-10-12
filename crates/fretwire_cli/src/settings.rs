@@ -36,3 +36,14 @@ pub struct Settings {
     #[arg(long)]
     pub skip_disk_sync: bool,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Settings;
+    use clap::CommandFactory;
+
+    #[test]
+    fn test_debug_assert() {
+        Settings::command().debug_assert();
+    }
+}
