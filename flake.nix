@@ -1,9 +1,16 @@
 {
-  outputs = { self, naersk, nixpkgs, flake-utils }:
+  outputs =
+    {
+      flake-utils,
+      naersk,
+      nixpkgs,
+      self,
+    }:
     {
       lib = import ./lib.nix nixpkgs.lib;
-    } //
-    flake-utils.lib.eachDefaultSystem (system:
+    }
+    // flake-utils.lib.eachDefaultSystem (
+      system:
       let
         pkgs = import nixpkgs {
           inherit system;
@@ -11,24 +18,23 @@
         naersk' = pkgs.callPackage naersk { };
       in
       {
+        devShells.default = pkgs.mkShell { };
         packages = {
           default = naersk'.buildPackage {
             name = "fretwire";
-            version = "1.0.0-rc";
             src = ./.;
+            version = "1.0.0-rc";
           };
           vim = pkgs.vimUtils.buildVimPlugin {
             pname = "fretwire";
-            version = "1.0.0-rc";
             src = ./vim;
+            version = "1.0.0-rc";
           };
         };
-        devShells.default = pkgs.mkShell { };
       }
     );
-
   inputs.naersk = {
-    url = "github:nix-community/naersk";
     inputs.nixpkgs.follows = "nixpkgs";
+    url = "github:nix-community/naersk";
   };
 }
