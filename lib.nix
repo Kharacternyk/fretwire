@@ -1,13 +1,13 @@
 lib:
-let inherit (lib) filter readFile splitString getAttrFromPath;
+let inherit (lib) pipe filter readFile splitString getAttrFromPath;
+  read = file: pipe file [
+    readFile
+    (splitString "\n")
+    (filter (line: line != ""))
+  ];
 in
 {
+  inherit read;
   import = set: file:
-    map (attribute: getAttrFromPath (splitString "." attribute) set) (
-      filter (attribute: attribute != "") (
-        splitString "\n" (
-          readFile file
-        )
-      )
-    );
+    map (attribute: getAttrFromPath (splitString "." attribute) set) (read file);
 }
