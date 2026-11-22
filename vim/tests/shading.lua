@@ -24,7 +24,7 @@ test.set_lines(buf, {
   "older @ 2000-01-01",
 })
 for row = 0, 4 do
-  equal({ "fretwireAge" .. row + 1 }, test.groups(buf, row))
+  equal({ "fretwireAge" .. row + 1, "Comment" }, test.groups(buf, row))
 end
 equal(
   { "fretwireMovedLine", "fretwireMoveMarker", "fretwireDestination" },
@@ -35,26 +35,26 @@ for _, row in ipairs({ 7, 8, 9, 12 }) do
   equal({}, test.groups(buf, row))
 end
 for _, row in ipairs({ 10, 11, 13 }) do
-  equal({ "fretwireAge5" }, test.groups(buf, row))
+  equal({ "fretwireAge5", "Comment" }, test.groups(buf, row))
 end
-equal({ "fretwireAge1" }, test.groups(buf, 14))
+equal({ "fretwireAge1", "Comment" }, test.groups(buf, 14))
 equal(0x464646, api.nvim_get_hl(0, { name = "fretwireAge1", link = false }).fg)
 equal(0xc8c8c8, api.nvim_get_hl(0, { name = "fretwireAge5", link = false }).fg)
 
 -- Editing an extremum rebuckets the rest of its block automatically.
 api.nvim_buf_set_lines(buf, 4, 5, false, { "newest @ 2026-01-21" })
 test.wait_for_refresh()
-equal({ "fretwireAge2" }, test.groups(buf, 3))
+equal({ "fretwireAge2", "Comment" }, test.groups(buf, 3))
 -- Removing separators merges ranges; inserting them restores independent ranges.
 test.set_lines(buf, { "a @ 2000-01-01", "", "b @ 2026-01-01" })
-equal({ "fretwireAge5" }, test.groups(buf, 0))
+equal({ "fretwireAge5", "Comment" }, test.groups(buf, 0))
 api.nvim_buf_set_lines(buf, 1, 2, false, {})
 test.wait_for_refresh()
-equal({ "fretwireAge1" }, test.groups(buf, 0))
+equal({ "fretwireAge1", "Comment" }, test.groups(buf, 0))
 api.nvim_buf_set_lines(buf, 1, 1, false, { " \t " })
 test.wait_for_refresh()
-equal({ "fretwireAge5" }, test.groups(buf, 0))
-equal({ "fretwireAge5" }, test.groups(buf, 2))
+equal({ "fretwireAge5", "Comment" }, test.groups(buf, 0))
+equal({ "fretwireAge5", "Comment" }, test.groups(buf, 2))
 
 api.nvim_set_hl(0, "Normal", { fg = "#000000", bg = "#c8c8c8" })
 api.nvim_exec_autocmds("ColorScheme", {})

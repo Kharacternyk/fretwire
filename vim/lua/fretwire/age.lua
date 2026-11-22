@@ -6,10 +6,11 @@ function M.collect(entries, row, line, marker, pattern)
   if marker == "" then
     return
   end
-  local _, marker_end = line:find(marker, 1, true)
+  local marker_start, marker_end = line:find(marker, 1, true)
   local time = marker_end and timestamp.parse(pattern, line:sub(marker_end + 1))
   if time then
-    entries[#entries + 1] = { row = row, length = #line, time = time }
+    entries[#entries + 1] =
+      { row = row, marker_col = marker_start - 1, length = #line, time = time }
   end
 end
 
@@ -28,7 +29,8 @@ function M.highlight(buf, entries)
       local fraction = (entry.time - oldest) / (newest - oldest)
       bucket = math.min(5, math.floor(fraction * 5) + 1)
     end
-    marks.add(buf, entry.row, 0, entry.length, "fretwireAge" .. bucket)
+    marks.add(buf, entry.row, 0, entry.marker_col, "fretwireAge" .. bucket)
+    marks.add(buf, entry.row, entry.marker_col, entry.length, "Comment")
   end
 end
 

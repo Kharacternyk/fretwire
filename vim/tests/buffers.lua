@@ -15,9 +15,21 @@ test.set_lines(buf, {
   "старий [%] 31/12/2025",
   "новий [%] 01/01/2026",
   "перенести →.* файл",
+  " [%] 01/01/2026",
 })
-equal({ "fretwireAge1" }, test.groups(buf, 0))
-equal({ "fretwireAge5" }, test.groups(buf, 1))
+equal({ "fretwireAge1", "Comment" }, test.groups(buf, 0))
+equal({ "fretwireAge5", "Comment" }, test.groups(buf, 1))
+equal({ "Comment" }, test.groups(buf, 3))
+local timestamp_marks = api.nvim_buf_get_extmarks(
+  buf,
+  namespace,
+  { 0, 0 },
+  { 0, -1 },
+  { details = true }
+)
+equal(#"старий", timestamp_marks[1][4].end_col)
+equal(#"старий", timestamp_marks[2][3])
+equal(#"старий [%] 31/12/2025", timestamp_marks[2][4].end_col)
 equal(
   { "fretwireMovedLine", "fretwireMoveMarker", "fretwireDestination" },
   test.groups(buf, 2)
@@ -38,7 +50,7 @@ vim.cmd("FretwireRefresh")
 equal({}, api.nvim_buf_get_extmarks(buf, namespace, 0, -1, {}))
 vim.b.fretwire_timestamp_marker = " [%] "
 vim.cmd("FretwireRefresh")
-equal({ "fretwireAge1" }, test.groups(buf, 0))
+equal({ "fretwireAge1", "Comment" }, test.groups(buf, 0))
 
 -- Independent buffer settings and filetype cleanup.
 vim.cmd("enew")
@@ -56,4 +68,4 @@ equal({}, api.nvim_buf_get_extmarks(buf, namespace, 0, -1, {}))
 test.set_lines(buf, { "a [%] 01/01/2000", "b [%] 01/01/2026" })
 equal({}, test.groups(buf, 0))
 vim.bo.filetype = "fretwire"
-equal({ "fretwireAge1" }, test.groups(buf, 0))
+equal({ "fretwireAge1", "Comment" }, test.groups(buf, 0))
