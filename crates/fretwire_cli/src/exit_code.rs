@@ -6,7 +6,6 @@ use fretwire_format::Error::{
 use fretwire_format_in_place::Error::{FormatFailed, IOFailed, LockFailed, SizeFailed};
 use std::process::ExitCode;
 
-#[must_use]
 pub fn exit_code(result: &Result<(), Error>) -> ExitCode {
     match result {
         Ok(()) => 0,
